@@ -1,0 +1,3 @@
+﻿vmName,vmResourceGroupName,EnableSecureBoot
+testvm05,gen1-tl-demo-rg,FALSE
+testvm06,gen1-tl-demo-rg,TRUE
