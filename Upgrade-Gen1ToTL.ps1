@@ -241,12 +241,12 @@ foreach ($importVm in $importVmArray) {
             $messageTxt = "Mapping existing configuration for $vmName under $vmResourceGroupName"
             Write-Output $messageTxt
     
-            $currentVmParam = @{
+            $paramGetAzVm = @{
                 ResourceGroupName = $vmResourceGroupName
                 Name              = $vmName
                 ErrorAction       = 'Stop'
             }
-            $currentVm = Get-AzVM @currentVmParam
+            $currentVm = Get-AzVM @paramGetAzVm
     
             $CurrentVMConfig = @{
                 osdisk          = $currentvm.StorageProfile.OsDisk
@@ -275,7 +275,14 @@ foreach ($importVm in $importVmArray) {
                 [bool]$gen2Vm = $true
             }
             if ($currentOsDiskConfig.osType -eq "Linux") {
-                $messageTxt ="OS Type of Source VM is $($currentOsDiskConfig.osType)."
+                $paramGetAzVm = @{
+                    ResourceGroupName = $vmResourceGroupName
+                    Name              = $vmName
+                    Status            = $true
+                    ErrorAction       = 'Stop'
+                }
+                $currentOs = Get-AzVM @paramGetAzVm
+                $messageTxt ="OS Type of Source VM is $($currentOsDiskConfig.osType) and OS Name is $($currentOs.OsName)."
                 Write-Output $messageTxt
             }
             #endregion
@@ -315,15 +322,25 @@ foreach ($importVm in $importVmArray) {
         try {
             #region - Upgrade VM to Trusted launch
             if ($gen2Vm -eq $false) {
-                $messageTxt = "Executing MBR to GPT conversion on $vmname"
-                Write-Output $messageTxt
-    
                 if ($currentOsDiskConfig.osType -eq "Linux") {
-                    $messageTxt = "Linux OS type is currently not supported in preview."
-                    Write-Error $messageTxt
-                    Set-ErrorLevel -1
-                    exit $ERRORLEVEL
+                    $messageTxt = "Executing grub installation and MBR to GPT conversion on $vmname"
+                    Write-Output $messageTxt
+                    $commandId = "RunShellScript"
+                    switch ($currentOs.OsName) {
+                        "Ubuntu" {
+                            $scriptString = "gdisk /dev/sda \
+                                            partprobe /dev/sda \
+                                            grub-install /dev/sda"
+                        }
+                        default {
+                            $scriptString = "gdisk /dev/sda \
+                                            partprobe /dev/sda \
+                                            grub2-install /dev/sda"
+                        }
+                    }
                 } else {
+                    $messageTxt = "Executing MBR to GPT conversion on $vmname"
+                    Write-Output $messageTxt
                     $commandId = "RunPowerShellScript"
                     $scriptString = "MBR2GPT /convert /allowFullOS"
                 }

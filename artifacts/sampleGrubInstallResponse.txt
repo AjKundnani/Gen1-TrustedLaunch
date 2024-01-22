@@ -1,0 +1,15 @@
+Value[0]        :
+  Code          : ProvisioningState/succeeded
+  Level         : Info
+  DisplayStatus : Provisioning succeeded
+  Message       : Enable succeeded:
+[stdout]
+GPT fdisk (gdisk) version 1.0.5
+
+
+[stderr]
+Usage: gdisk [-l] device_file
+
+Status          : Succeeded
+Capacity        : 0
+Count           : 0
