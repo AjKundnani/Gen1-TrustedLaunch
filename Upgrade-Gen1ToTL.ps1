@@ -26,7 +26,7 @@ Upgrades Azure VM from Gen1 to Trusted Launch Configuration with OS State preser
         4. Re-enable SSE CMK and disk encryptions.
 
 .PARAMETER subscriptionId
-Subscription ID for Gen1 VM & target Gen2 VM.
+Subscription ID for Gen1 VM.
 
 .PARAMETER tenantDomain
 Primary AAD Domain Name for authentication. (For example, contoso.onmicrosoft.com)
@@ -35,19 +35,14 @@ Primary AAD Domain Name for authentication. (For example, contoso.onmicrosoft.co
 Local file path location of csv containing vmName, vmResourceGroupName, enableSecureBoot details.
 
 .PARAMETER vmName
-(Csv input parameter) Gen1 VM Resource Name.
+(Csv input parameter) Resource Name of Gen1 VM to be upgraded
 
 .PARAMETER vmResourceGroupName
-(Csv input parameter) Resource Group for Gen1 VM & target Gen2 VM.
+(Csv input parameter) Resource Group for Gen1 VM.
 
 .PARAMETER enableSecureBoot
 (Csv input parameter) If target Trusted Launch VM should be deployed with Secure Boot enabled (TRUE) or disabled (FALSE). This option should be disabled if VM is hosting custom or unsigned boot drivers which cannot be attested.
 
-.EXAMPLE
-    .\Convert-Gen1ToTLVM.ps1 -subscriptionId <subscriptionId> -tenantDomain <aadTenantDomain> -vmName <gen1VmName> -targetVmName <gen2VmName> -vmResourceGroupName <gen1VmResourceGroup> -workingDirectory "<localPathForOsDiskDownload>"
-    
-    Convert Gen1 VM to Trusted Launch VM using different VM Name and same resource group.
-    
 .EXAMPLE
     .\Upgrade-Gen1ToTL.ps1 -subscriptionId $subscriptionId -tenantDomain contoso.onmicrosoft.com -csvLocation "C:\Temp\sampleCsv.csv"
     
@@ -229,7 +224,9 @@ $importVmArray = Import-Csv $csvLocation -ErrorAction 'Stop'
 foreach ($importVm in $importVmArray) {
     $vmName                 = $importVm.vmName
     $vmResourceGroupName    = $importVm.vmResourceGroupName
-    $enableSecureBoot       = [system.convert]::ToBoolean($importVm.enableSecureBoot)
+    if ($importVm.enableSecureBoot) {
+        $enableSecureBoot       = [system.convert]::ToBoolean($importVm.enableSecureBoot)
+    } else {$enableSecureBoot = $true}
     [bool]$gen2Vm           = $false
 
     $messageTxt = "Processing VM $vmName under resource group $vmResourceGroupName with Secure boot $($importVm.enableSecureBoot)"

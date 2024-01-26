@@ -45,6 +45,28 @@ Id    |    Step    |    Description
 5    |    De-allocate and upgrade VM properties    |    Script will update the VM attributes from Gen1 to Gen2 and security type to Trusted launch.
 6    |    Start VM    |    Post successful upgrade, VM will be started.
 
+## Script execution
+
+Parameter Name    |    Description    |    Mandatory
+-|-|-
+subscriptionId    |    Subscription ID for Gen1 VM to be upgraded.    |    True
+tenantDomain    |    Primary AAD Domain Name for authentication. (For example, contoso.onmicrosoft.com)    |    True
+csvLocation    |    Local file path location of csv containing vmName, vmResourceGroupName, enableSecureBoot details.    |    True
+
+Csv column Name    |    Description    |    Mandatory
+-|-
+vmName    |    Resource Name of Gen1 VM to be upgraded.    |    True
+vmResourceGroupName    |    Resource Group for Gen1 VM to be upgraded.    |    True
+enableSecureBoot    |    If target Trusted Launch VM should be deployed with Secure Boot enabled (TRUE) or disabled (FALSE). By default set to **TRUE**.<br/>This option should be disabled if VM is hosting custom or unsigned boot drivers which cannot be attested.    |    False
+
+**Example**
+
+```azurepowershell
+.\Upgrade-Gen1ToTL.ps1 -subscriptionId $subscriptionId -tenantDomain contoso.onmicrosoft.com -csvLocation "C:\Temp\sampleCsv.csv"
+    
+# Upgrade all VMs provided in csv from Gen1 to Trusted launch with specific parameter values.
+```
+
 ## Post-Conversion Activities
 
 After successful conversion of Gen1 to Trusted Launch VM, user needs to perform required steps for applicable scenarios from below list:
