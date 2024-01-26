@@ -13,6 +13,12 @@ Newer OS like Windows Server 2022 Azure Edition require UEFI, Windows 11 require
 You can now upgrade existing Gen1 (BIOS) VMs to Trusted launch by on-boarding to preview at **https://aka.ms/Gen1ToTLUpgrade**.
 This repository provides end users with PowerShell script-based guidance which they can self-execute & upgrade existing Gen1 (BIOS) VMs to Gen2 (UEFI) VMs.
 
+**IMPORTANT DISCLAIMER**
+
+**Production use:** The Preview should only be used for testing, evaluation and feedback. Production workloads are **not recommended.**
+
+Preview features are not backed with Microsoft Support SLA.
+
 ## Pre-Requisites
 
 Pre-Requisite    |    Description
@@ -32,7 +38,7 @@ VM Disaster Recovery    |    Trusted launch VMs currently do not support Azure S
 Best Practice    |    Description
 -|-
 Validate in lower environment    |    Enable Trusted launch on a test Generation 2 VM and ensure if any changes are required to meet the prerequisites before enabling Trusted launch on Generation 2 VMs associated with production workloads.
-**Backup** Gen1 VM    |    Create restore point for Azure Generation 1 VM(s) associated with production workloads before enabling Trusted launch security type. You can use the Restore Point to re-create the disks and Generation 1 VM with the previous well-known state.
+**Backup** Gen1 VM    |    Create restore point for Azure Generation 1 VM(s) associated with  workloads before enabling Trusted launch security type. You can use the Restore Point to re-create the disks and Generation 1 VM with the previous well-known state.
 
 ## High-Level Upgrade Workflow
 
@@ -54,7 +60,7 @@ tenantDomain    |    Primary AAD Domain Name for authentication. (For example, c
 csvLocation    |    Local file path location of csv containing vmName, vmResourceGroupName, enableSecureBoot details.    |    True
 
 Csv column Name    |    Description    |    Mandatory
--|-
+-|-|-
 vmName    |    Resource Name of Gen1 VM to be upgraded.    |    True
 vmResourceGroupName    |    Resource Group for Gen1 VM to be upgraded.    |    True
 enableSecureBoot    |    If target Trusted Launch VM should be deployed with Secure Boot enabled (TRUE) or disabled (FALSE). By default set to **TRUE**.<br/>This option should be disabled if VM is hosting custom or unsigned boot drivers which cannot be attested.    |    False
@@ -74,3 +80,9 @@ After successful conversion of Gen1 to Trusted Launch VM, user needs to perform 
 1. Validate health of Virtual Machine OS and workload hosted on converted Gen2 TLVM.
 2. Re-enable all disk encryptions on Trusted launch virtual machine post successful upgrade.
 3. Re-enable backup with Enhanced Policy post successful upgrade to Trusted launch virtual machine.
+
+## Known issues
+
+### Gen1 to Trusted launch upgrade for Linux distros
+
+Gen1 to Trusted launch upgrade script has been validated with Ubuntu 20.04 LTS distro. For other distros, **mandatorily** validate the upgrade in lower environment before running in production.
