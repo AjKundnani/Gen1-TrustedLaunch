@@ -102,16 +102,19 @@ Function Add-AzPSAccount {
 		#region - Enable-AzAccount()
         $paramConnectAzAccount = @{
             subscriptionId = $subscriptionID
-            Tenant       = $tenantDomain
-            Environment  = $environment
+            Tenant         = $tenantDomain
             ErrorAction    = 'Stop'
+        }
+        if ($environment) {
+            $paramConnectAzAccount.Add('Environment', $environment)
         }
         Connect-AzAccount @paramConnectAzAccount
 		return $true
 		#endregion
 	} catch [system.exception] {
 		$messageTxt = "Error in Enable-AzAccount() `n$($psitem.Exception.Message)"
-        Write-Output $messageTxt
+        Write-Error $messageTxt
+        Set-ErrorLevel -1
 		return
 	}
 }
@@ -167,18 +170,31 @@ try {
     Set-Errorlevel 0 | Out-Null
     Get-Errorlevel | Out-Null
 
-    $azPsModule = @(
-        'Az.Accounts',
-        'Az.Compute'
-    )
+    $azPsModule = @(@{
+        ModuleName = 'Az.Accounts'
+        Version    = [version]"2.8.0"
+    },
+    @{
+        ModuleName = 'Az.Compute'
+        Version    = [version]"6.0.0"
+    })
 
     foreach ($azModule in $azPsModule) {
-        If ((Get-Module $azModule -listavailable).count -gt 0) {
-            $messageTxt = "Located $azModule on local machine."
-            Write-Output $messageTxt
-        }
-        else {
-            $messagetxt = "$azModule could not be located, proceeding with Az Module install."
+        $module = Get-Module -ListAvailable -Name $azModule.ModuleName
+
+        # Check if the module is available
+        if ($module) {
+            # Check if the module version is greater than or equal to the minimum version
+            if ($module.Version -ge $azModule.Version) {
+                $messagetxt = "Module $($azModule.ModuleName) with minimum version $($azModule.Version) is available."
+                Write-Output $messageTxt
+            } else {
+                $messagetxt = "Module $($azModule.ModuleName)  is available, but its version is lower than the minimum version $($azModule.Version). Upgrading module on local machine."
+                Write-warning $messageTxt
+                Update-Module $($azModule.ModuleName) -ErrorAction 'Stop' -Confirm:$false -Force
+            }
+        } else {
+            $messagetxt = "Module $($azModule.ModuleName) is not available, proceeding with Az Module install."
             Write-warning $messageTxt
             Install-Module Az -Confirm:$false -Force -ErrorAction 'Stop'
         }
@@ -228,6 +244,7 @@ foreach ($importVm in $importVmArray) {
         $enableSecureBoot       = [system.convert]::ToBoolean($importVm.enableSecureBoot)
     } else {$enableSecureBoot = $true}
     [bool]$gen2Vm           = $false
+    [bool]$tlVm             = $false
 
     $messageTxt = "Processing VM $vmName under resource group $vmResourceGroupName with Secure boot $($importVm.enableSecureBoot)"
     Write-Output $messageTxt
@@ -249,6 +266,7 @@ foreach ($importVm in $importVmArray) {
                 osdisk          = $currentvm.StorageProfile.OsDisk
                 vmsize          = $currentvm.HardwareProfile.VmSize
                 location        = $currentVm.Location
+                securityType    = $currentVm.SecurityProfile.SecurityType
             }
             
             $osDiskParam = @{
@@ -267,9 +285,16 @@ foreach ($importVm in $importVmArray) {
             }
     
             if ($currentOsDiskConfig.HyperVGen -eq "V2") {
-                $messageTxt = "VM $vmName under resource group $vmResourceGroupName is running as Gen2. MBR2GPT conversion will be skipped."
-                Write-Output $messageTxt
-                [bool]$gen2Vm = $true
+                if ($currentVm.securityType) {
+                    $messagetxt = "VM $vmName under resource group $vmResourceGroupName is already Trusted launch, no further action required."
+                    Write-Output $messagetxt
+                    $tlVm = $true
+                    Set-ErrorLevel -1
+                } else {
+                    $messageTxt = "VM $vmName under resource group $vmResourceGroupName is running as Gen2. MBR2GPT conversion will be skipped."
+                    Write-Output $messageTxt
+                    [bool]$gen2Vm = $true
+                }
             }
             if ($currentOsDiskConfig.osType -eq "Linux") {
                 $paramGetAzVm = @{
