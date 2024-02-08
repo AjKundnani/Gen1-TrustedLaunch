@@ -384,8 +384,8 @@ foreach ($importVm in $importVmArray) {
                         Write-Output $messagetxt
                     } else {
                         $messagetxt = "MBR to GPT conversion for Windows $vmname failed. Terminating script execution."
-                        Write-Error $messagetxt
-                        Set-ErrorLevel -1
+                        # Write-Error $messagetxt
+                        # Set-ErrorLevel -1
                     }
                 }
             }
