@@ -285,11 +285,11 @@ foreach ($importVm in $importVmArray) {
             }
     
             if ($currentOsDiskConfig.HyperVGen -eq "V2") {
-                if ($currentVm.securityType) {
+                if ($CurrentVMConfig.securityType) {
                     $messagetxt = "VM $vmName under resource group $vmResourceGroupName is already Trusted launch, no further action required."
                     Write-Output $messagetxt
-                    $tlVm = $true
-                    Set-ErrorLevel -1
+                    [bool]$tlVm = $true
+                    [bool]$gen2Vm = $true
                 } else {
                     $messageTxt = "VM $vmName under resource group $vmResourceGroupName is running as Gen2. MBR2GPT conversion will be skipped."
                     Write-Output $messageTxt
@@ -310,26 +310,28 @@ foreach ($importVm in $importVmArray) {
             #endregion
     
             #region - Validate SKU Support
-            $messageTxt = "Validating VM SKU $($CurrentVMConfig.vmsize) for $vmname is supported for Trusted launch"
-            Write-Output $messageTxt
-    
-            $gen2Support = $null
-            $tlvmSupport = $null
-    
-            $skuDetail = Get-AzComputeResourceSku -Location $($CurrentVMConfig.location) -ErrorAction 'Stop' | `
-                            Where-Object {$psitem.Name -eq $($CurrentVMConfig.vmsize)}
-    
-            $gen2Support =  $skuDetail | Select-Object -Property Capabilities -ExpandProperty Capabilities | Where-Object {$psitem.Name -eq "HyperVGenerations"}
-            $tlvmSupport =  $skuDetail | Select-Object -Property Capabilities -ExpandProperty Capabilities | Where-Object {$psitem.Name -eq "TrustedLaunchDisabled"}
-    
-            if (($gen2Support.value.Split(",")[-1] -eq "V2") -and !($tlvmSupport)) {
-                $messageTxt = "VM SKU $($CurrentVMConfig.vmsize) supported for TLVM. Proceeding to create TLVM."
+            If ($gen2Vm -eq $false) {
+                $messageTxt = "Validating VM SKU $($CurrentVMConfig.vmsize) for $vmname is supported for Trusted launch"
                 Write-Output $messageTxt
-            } else {
-                $messageTxt = "VM SKU $($CurrentVMConfig.vmsize) not supported for Trusted launch. Update VM Size to Trusted launch Supported SKU. For more details, https://aka.ms/TrustedLaunch"
-                Write-Error $messageTxt
-                Set-ErrorLevel -1
-                exit $ERRORLEVEL
+        
+                $gen2Support = $null
+                $tlvmSupport = $null
+        
+                $skuDetail = Get-AzComputeResourceSku -Location $($CurrentVMConfig.location) -ErrorAction 'Stop' | `
+                                Where-Object {$psitem.Name -eq $($CurrentVMConfig.vmsize)}
+        
+                $gen2Support =  $skuDetail | Select-Object -Property Capabilities -ExpandProperty Capabilities | Where-Object {$psitem.Name -eq "HyperVGenerations"}
+                $tlvmSupport =  $skuDetail | Select-Object -Property Capabilities -ExpandProperty Capabilities | Where-Object {$psitem.Name -eq "TrustedLaunchDisabled"}
+        
+                if (($gen2Support.value.Split(",")[-1] -eq "V2") -and !($tlvmSupport)) {
+                    $messageTxt = "VM SKU $($CurrentVMConfig.vmsize) supported for TLVM. Proceeding to create TLVM."
+                    Write-Output $messageTxt
+                } else {
+                    $messageTxt = "VM SKU $($CurrentVMConfig.vmsize) not supported for Trusted launch. Update VM Size to Trusted launch Supported SKU. For more details, https://aka.ms/TrustedLaunch"
+                    Write-Error $messageTxt
+                    Set-ErrorLevel -1
+                    exit $ERRORLEVEL
+                }
             }
             #endregion
         } catch [System.Exception] {
@@ -375,17 +377,18 @@ foreach ($importVm in $importVmArray) {
                     ErrorAction       = 'Stop'
                 }
                 $mbrToGpt = Invoke-AzVMRunCommand @paramInvokeAzVMRunCommand
+                Write-Output $mbrToGpt
 
-                if ($currentOsDiskConfig.osType -ne "Linux") {
-                    if ($mbrToGpt.Contains("Conversion completed successfully")) {
-                        $messagetxt = "MBR to GPT conversion for Windows $vmname completed successfully."
-                        Write-Output $messagetxt
-                    } else {
-                        $messagetxt = "MBR to GPT conversion for Windows $vmname failed. Terminating script execution."
-                        Write-Error $messagetxt
-                        Set-ErrorLevel -1
-                    }
-                }
+                # if ($currentOsDiskConfig.osType -ne "Linux") {
+                #     if ($mbrToGpt.ToString().Contains("Conversion completed successfully")) {
+                #         $messagetxt = "MBR to GPT conversion for Windows $vmname completed successfully."
+                #         Write-Output $messagetxt
+                #     } else {
+                #         $messagetxt = "MBR to GPT conversion for Windows $vmname failed. Terminating script execution."
+                #         # Write-Error $messagetxt
+                #         # Set-ErrorLevel -1
+                #     }
+                # }
             }
             #endregion
         } catch [System.Exception] {
@@ -399,42 +402,44 @@ foreach ($importVm in $importVmArray) {
     if ($ERRORLEVEL -eq 0) {
         try {
             #region - Upgrade VM to Trusted launch
-            $messageTxt = "De-allocating $vmname"
-            Write-Output $messageTxt
+            if ($tlvm -eq $false) {
+                $messageTxt = "De-allocating $vmname"
+                Write-Output $messageTxt
 
-            $paramStopAzVm = @{
-                ResourceGroupName   = $vmResourceGroupName
-                Name                = $vmName
-                Force               = $true
-                Confirm             = $false
-                ErrorAction         = 'Stop'
+                $paramStopAzVm = @{
+                    ResourceGroupName   = $vmResourceGroupName
+                    Name                = $vmName
+                    Force               = $true
+                    Confirm             = $false
+                    ErrorAction         = 'Stop'
+                }
+                Stop-AzVm @paramStopAzVm | Out-Null
+
+                $messageTxt = "Updating security type for $vmname to Trusted launch"
+                Write-Output $messageTxt
+
+                $paramUpdateAzVm = @{
+                    ResourceGroupName   = $vmResourceGroupName
+                    VM                  = $currentVm
+                    SecurityType        = 'TrustedLaunch'
+                    EnableVtpm          = $true
+                    ErrorAction         = 'Stop'
+                }
+                if ($enableSecureBoot -eq $true) {
+                    $paramUpdateAzVm.Add('EnableSecureBoot', $true)
+                } else {$paramUpdateAzVm.Add('EnableSecureBoot', $false)}
+                Update-AzVM @paramUpdateAzVm | Out-Null
+
+                $messageTxt = "Starting $vmname"
+                Write-Output $messageTxt
+
+                $paramStartAzVm = @{
+                    ResourceGroupName   = $vmResourceGroupName
+                    Name                = $vmName
+                    ErrorAction         = 'Stop'
+                }
+                Start-AzVM @paramStartAzVm | Out-Null
             }
-            Stop-AzVm @paramStopAzVm | Out-Null
-
-            $messageTxt = "Updating security type for $vmname to Trusted launch"
-            Write-Output $messageTxt
-
-            $paramUpdateAzVm = @{
-                ResourceGroupName   = $vmResourceGroupName
-                VM                  = $currentVm
-                SecurityType        = 'TrustedLaunch'
-                EnableVtpm          = $true
-                ErrorAction         = 'Stop'
-            }
-            if ($enableSecureBoot -eq $true) {
-                $paramUpdateAzVm.Add('EnableSecureBoot', $true)
-            } else {$paramUpdateAzVm.Add('EnableSecureBoot', $false)}
-            Update-AzVM @paramUpdateAzVm | Out-Null
-
-            $messageTxt = "Starting $vmname"
-            Write-Output $messageTxt
-
-            $paramStartAzVm = @{
-                ResourceGroupName   = $vmResourceGroupName
-                Name                = $vmName
-                ErrorAction         = 'Stop'
-            }
-            Start-AzVM @paramStartAzVm | Out-Null
             #endregion    
         } catch [System.Exception] {
             $messageTxt = 'Error Exception Occurred' + "`n$($psitem.Exception.Message)" + "`nError Caused By: $(($psitem.InvocationInfo.Line).Trim())"
