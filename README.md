@@ -86,3 +86,10 @@ After successful conversion of Gen1 to Trusted Launch VM, user needs to perform 
 ### Gen1 to Trusted launch upgrade for Linux distros
 
 Gen1 to Trusted launch upgrade script has been validated with Ubuntu 20.04 LTS distro. For other distros, **mandatorily** validate the upgrade in lower environment before running in production.
+
+### Cannot find room for the EFI system partition
+
+This error occurs for one of following reason:
+
+- There is no free space available on the system volume.
+- System volume is corrupted. You can validate by trying to Shrink Volume by few MBs under Disk Management console. Use command `chkdsk C:/v/f` to repair system volume.

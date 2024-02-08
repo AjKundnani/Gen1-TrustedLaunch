@@ -342,7 +342,7 @@ foreach ($importVm in $importVmArray) {
 
     if ($ERRORLEVEL -eq 0) {
         try {
-            #region - Upgrade VM to Trusted launch
+            #region - MBR to GPT conversion
             if ($gen2Vm -eq $false) {
                 if ($currentOsDiskConfig.osType -eq "Linux") {
                     $messageTxt = "Executing grub installation and MBR to GPT conversion on $vmname"
@@ -374,12 +374,34 @@ foreach ($importVm in $importVmArray) {
                     ScriptString      = $scriptString
                     ErrorAction       = 'Stop'
                 }
-                Invoke-AzVMRunCommand @paramInvokeAzVMRunCommand    
+                $mbrToGpt = Invoke-AzVMRunCommand @paramInvokeAzVMRunCommand
+
+                if ($currentOsDiskConfig.osType -ne "Linux") {
+                    if ($mbrToGpt.Contains("Conversion failed")) {
+                        $messagetxt = "MBR to GPT conversion for Windows $vmname failed. Terminating script execution."
+                        Write-Error $messagetxt
+                        Set-ErrorLevel -1
+                    } else {
+                        $messagetxt = "MBR to GPT conversion for Windows $vmname completed successfully."
+                        Write-Output $messagetxt
+                    }
+                }
             }
-    
+            #endregion
+        } catch [System.Exception] {
+            $messageTxt = 'Error Exception Occurred' + "`n$($psitem.Exception.Message)" + "`nError Caused By: $(($psitem.InvocationInfo.Line).Trim())"
+            Write-Output $messageTxt
+            Set-ErrorLevel -1
+            exit $ERRORLEVEL
+        }
+    }
+
+    if ($ERRORLEVEL -eq 0) {
+        try {
+            #region - Upgrade VM to Trusted launch
             $messageTxt = "De-allocating $vmname"
             Write-Output $messageTxt
-    
+
             $paramStopAzVm = @{
                 ResourceGroupName   = $vmResourceGroupName
                 Name                = $vmName
@@ -388,10 +410,10 @@ foreach ($importVm in $importVmArray) {
                 ErrorAction         = 'Stop'
             }
             Stop-AzVm @paramStopAzVm | Out-Null
-    
+
             $messageTxt = "Updating security type for $vmname to Trusted launch"
             Write-Output $messageTxt
-    
+
             $paramUpdateAzVm = @{
                 ResourceGroupName   = $vmResourceGroupName
                 VM                  = $currentVm
@@ -403,10 +425,10 @@ foreach ($importVm in $importVmArray) {
                 $paramUpdateAzVm.Add('EnableSecureBoot', $true)
             } else {$paramUpdateAzVm.Add('EnableSecureBoot', $false)}
             Update-AzVM @paramUpdateAzVm | Out-Null
-    
+
             $messageTxt = "Starting $vmname"
             Write-Output $messageTxt
-    
+
             $paramStartAzVm = @{
                 ResourceGroupName   = $vmResourceGroupName
                 Name                = $vmName
