@@ -376,16 +376,17 @@ foreach ($importVm in $importVmArray) {
                     ScriptString      = $scriptString
                     ErrorAction       = 'Stop'
                 }
-                Invoke-AzVMRunCommand @paramInvokeAzVMRunCommand
+                $mbrtogpt = Invoke-AzVMRunCommand @paramInvokeAzVMRunCommand
+                Write-Output $mbrtogpt
 
                 if ($currentOsDiskConfig.osType -ne "Linux") {
-                    if ($LASTEXITCODE -eq 0) {
+                    if ($mbrtogpt.Value[0].Message.Contains("Conversion completed successfully") -eq $true) {
                         $messagetxt = "MBR to GPT conversion for Windows $vmname completed successfully."
                         Write-Output $messagetxt
                     } else {
                         $messagetxt = "MBR to GPT conversion for Windows $vmname failed. Terminating script execution."
-                        # Write-Error $messagetxt
-                        # Set-ErrorLevel -1
+                        Write-Error $messagetxt
+                        Set-ErrorLevel -1
                     }
                 }
             }
