@@ -310,7 +310,7 @@ foreach ($importVm in $importVmArray) {
             #endregion
     
             #region - Validate SKU Support
-            If ($gen2Vm -eq $false) {
+            If ($tlVm -eq $false) {
                 $messageTxt = "Validating VM SKU $($CurrentVMConfig.vmsize) for $vmname is supported for Trusted launch"
                 Write-Output $messageTxt
         
