@@ -377,13 +377,13 @@ foreach ($importVm in $importVmArray) {
                 $mbrToGpt = Invoke-AzVMRunCommand @paramInvokeAzVMRunCommand
 
                 if ($currentOsDiskConfig.osType -ne "Linux") {
-                    if ($mbrToGpt.Contains("Conversion failed")) {
+                    if ($mbrToGpt.Contains("Conversion completed successfully")) {
+                        $messagetxt = "MBR to GPT conversion for Windows $vmname completed successfully."
+                        Write-Output $messagetxt
+                    } else {
                         $messagetxt = "MBR to GPT conversion for Windows $vmname failed. Terminating script execution."
                         Write-Error $messagetxt
                         Set-ErrorLevel -1
-                    } else {
-                        $messagetxt = "MBR to GPT conversion for Windows $vmname completed successfully."
-                        Write-Output $messagetxt
                     }
                 }
             }
