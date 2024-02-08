@@ -93,3 +93,14 @@ This error occurs for one of following reason:
 
 - There is no free space available on the system volume.
 - System volume is corrupted. You can validate by trying to Shrink Volume by few MBs under Disk Management console. Use command `chkdsk C:/v/f` to repair system volume.
+
+### D Drive assigned to System Reserved Post upgrade
+
+Temporary storage Drive letter assignment 'D' is changed to 'E' with previous letter assigned to System Reserved post-upgrade. The issue is being troubleshooted. execute below steps manually post-upgrade to workaround the issue:
+
+After the upgrade check the disks on the server, if system reserved partition has the letter D:, do the following actions:
+
+- reconfigure pagefile from D: to C:
+- reboot the server
+- remove letter D: from the partition
+- reboot the server to show the temporary storage disk with D: letter
