@@ -196,7 +196,7 @@ try {
         } else {
             $messagetxt = "Module $($azModule.ModuleName) is not available, proceeding with Az Module install."
             Write-warning $messageTxt
-            Install-Module Az -Confirm:$false -Force -ErrorAction 'Stop'
+            Install-Module -Name Az -Repository PSGallery -Force -Confirm:$false -ErrorAction 'Stop'
         }
     }
 
