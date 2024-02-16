@@ -91,8 +91,9 @@ Gen1 to Trusted launch upgrade script has been validated with Ubuntu 20.04 LTS d
 
 This error occurs for one of following reason:
 
-- There is no free space available on the system volume.
+- There is no free space available on the system volume
 - System volume is corrupted. You can validate by trying to Shrink Volume by few MBs under Disk Management console. Use command `chkdsk C:/v/f` to repair system volume.
+- `Virtual Disk Service` is not running or unable to communicate successfully.
 
 ### D Drive assigned to System Reserved Post upgrade
 
