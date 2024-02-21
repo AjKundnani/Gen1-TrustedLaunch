@@ -380,7 +380,7 @@ foreach ($importVm in $importVmArray) {
                 Write-Output $mbrtogpt
 
                 if ($currentOsDiskConfig.osType -ne "Linux") {
-                    if ($mbrtogpt.Value[-1].Message) {
+                    if ($mbrtogpt.Value[-1].Message -or !($mbrtogpt.Value[0].Message)) {
                         $messagetxt = "MBR to GPT conversion for Windows $vmname failed. Terminating script execution."
                         Write-Error $messagetxt
                         Set-ErrorLevel -1    
