@@ -81,6 +81,15 @@ After successful conversion of Gen1 to Trusted Launch VM, user needs to perform 
 2. Re-enable all disk encryptions on Trusted launch virtual machine post successful upgrade.
 3. Re-enable backup with Enhanced Policy post successful upgrade to Trusted launch virtual machine.
 
+## Troubleshooting
+
+### MBR2GPT - Windows
+
+Share following log files available at `%windir%` with feature team to troubleshoot failures related to MBR2GPT execution for Windows VMs:
+
+- setupact.log
+- setuperr.log
+
 ## Known issues
 
 ### Gen1 to Trusted launch upgrade for Linux distros
@@ -94,6 +103,10 @@ This error occurs for one of following reason:
 - There is no free space available on the system volume
 - System volume is corrupted. You can validate by trying to Shrink Volume by few MBs under Disk Management console. Use command `chkdsk C:/v/f` to repair system volume.
 - `Virtual Disk Service` is not running or unable to communicate successfully.
+- System volume disk is already configured with 4 MBR partitions (maximum supported by MBR disk layout). You need to delete one of the partition to make room for EFI system partition.
+    1. Run `ReAgentc /info` to identify partition actively used by Recovery. Example: `Windows RE location:       \\?\GLOBALROOT\device\harddisk0\partition4\Recovery\WindowsRE`
+    2. Run PowerShell cmdlet `Get-Partition -DiskNumber 0` to identify current partitions configured.
+    3. Run PowerShell cmdlet `Remove-Partition -DiskNumber 0 -PartitionNumber X` to remove any extra **Recovery** partition not actively used by Recovery service as identified in Step 1.
 
 ### D Drive assigned to System Reserved Post upgrade
 
