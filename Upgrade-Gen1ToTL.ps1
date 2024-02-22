@@ -344,6 +344,44 @@ foreach ($importVm in $importVmArray) {
 
     if ($ERRORLEVEL -eq 0) {
         try {
+            #region - MBR to GPT Validation
+            if ($gen2Vm -eq $false) {
+                if ($currentOsDiskConfig.osType -ne "Linux") {
+                    $messageTxt = "Validating MBR to GPT conversion support for $vmname"
+                    Write-Output $messageTxt
+                    $commandId = "RunPowerShellScript"
+                    $scriptString = "MBR2GPT /validate /allowFullOS"
+                    $paramInvokeAzVMRunCommand = @{
+                        ResourceGroupName = $vmResourceGroupName
+                        VMName            = $vmName
+                        CommandId         = $commandId
+                        ScriptString      = $scriptString
+                        ErrorAction       = 'Stop'
+                    }
+                    $mbrtogptValidate = Invoke-AzVMRunCommand @paramInvokeAzVMRunCommand
+                    Write-Output $mbrtogptValidate
+
+                    if ($mbrtogptValidate.Value[-1].Message -or !($mbrtogptValidate.Value[0].Message)) {
+                        $messagetxt = "MBR to GPT support validation for Windows $vmname failed. Terminating script execution."
+                        Write-Error $messagetxt
+                        Set-ErrorLevel -1    
+                    } else {
+                        $messagetxt = "MBR to GPT support validation for Windows $vmname completed successfully."
+                        Write-Output $messagetxt
+                    }
+                }
+            }
+            #endregion
+        } catch [System.Exception] {
+            $messageTxt = 'Error Exception Occurred' + "`n$($psitem.Exception.Message)" + "`nError Caused By: $(($psitem.InvocationInfo.Line).Trim())"
+            Write-Output $messageTxt
+            Set-ErrorLevel -1
+            exit $ERRORLEVEL
+        }
+    }
+
+    if ($ERRORLEVEL -eq 0) {
+        try {
             #region - MBR to GPT conversion
             if ($gen2Vm -eq $false) {
                 if ($currentOsDiskConfig.osType -eq "Linux") {
