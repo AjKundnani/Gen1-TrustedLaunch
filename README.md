@@ -29,7 +29,7 @@ On-board subscription for preview    |    Register for **Gen1 to Trusted launch 
 [Az PowerShell Module](https://learn.microsoft.com/powershell/azure/what-is-azure-powershell)    |    Required cmdlets for Azure Platform.
 VM Contributor rights on Gen1 VM resource group.    |    Required RBAC permissions to modify and re-deploy Gen1 VM.
 VM is in allocated / Running state.    |    Required to read current state and configuration of Gen1 VM and execute MBR to GPT conversion.
-Operating System    |    Operating system should be [Trusted launch supported.](https://aka.ms/TrustedLaunch)<br/>**NOTE**: Linux VMs created using Azure marketplace OS images are supported. **Linux VMs migrated or uploaded to Azure are currently not supported.**
+Operating System    |    Operating system should be [Trusted launch supported.](https://aka.ms/TrustedLaunch)<br/>**NOTE**: For Linux VMs, execute MBR to GPT locally on VM. Refer to steps [Linux MBR to GPT conversion](#linux-os-mbr-to-gpt-conversion)
 Azure IaaS VM Agent    |    [Azure IaaS Windows VM Agent](https://learn.microsoft.com/azure/virtual-machines/extensions/agent-windows) OR [Azure IaaS Linux VM Agent](https://learn.microsoft.com/azure/virtual-machines/extensions/agent-linux) should be installed and healthy.
 Disk Encryption    |    If enabled, Disable any OS disk encryption including Bitlocker, CRYPT, [Server side encryption with customer managed keys](https://learn.microsoft.com/azure/virtual-machines/disk-encryption) prior to upgrade. All disk encryptions should be re-enabled post successful upgrade.
 VM Backup    |    Azure Backup if enabled for VM(s) should be configured with Enhanced Backup Policy. Trusted launch security type cannot be enabled for Generation 2 VM(s) configured with Standard Policy backup protection.<br/>Existing Azure VM backup can be migrated from Standard to Enhanced policy using private preview migration feature. Submit on-boarding request to preview using link https://aka.ms/formBackupPolicyMigration.
@@ -82,6 +82,29 @@ After successful conversion of Gen1 to Trusted Launch VM, user needs to perform 
 1. Validate health of Virtual Machine OS and workload hosted on converted Gen2 TLVM.
 2. Re-enable all disk encryptions on Trusted launch virtual machine post successful upgrade.
 3. Re-enable backup with Enhanced Policy post successful upgrade to Trusted launch virtual machine.
+
+## Linux OS MBR to GPT conversion
+
+Execute these steps on Linux Gen1 VM to complete MBR to GPT conversion before executing Gen1 -> Trusted Launch upgrade script.
+
+**Note**: *Non-Azure* steps are applicable for Non-Azure Linux VMs only, i.e., Linux VMs created outside Azure cloud. These do not apply if the Linux VM has been created in Azure Cloud.
+
+Id    |    Step    |    Description
+-|-|-
+1    |    Query the OS Disk using below command<br/> `lsblk -o NAME,HCTL,SIZE,MOUNTPOINT \| grep -i "sd"` | Identify the boot partition and associated disk
+2    |    Backup MBR partition:<br/>`dd if=/dev/sda of=backup.mbr bs=512 count=1`    |    Backup should be taken on drive other than Boot drive.
+3    |    **Non-Azure** Install `EFI Package`:<ul><li>**For Ubuntu**: `apt install grub-efi-amd64`<br/>*Note*: `grub-efi-amd64-signed` is recommended if supported by OS configuration.<li>**For RHEL**: `yum install gdisk grub2-x64-efi-modules efibootmgr dosfstools -y`</li></ul> | ![Ubuntu grub efi](./artifacts/01.On-Premise-Ubuntu.png)<br/>![RHEL grub efi](./artifacts/02.On-Premise-RHEL.png)
+4    |    Execute gdisk command `gdisk /dev/sda`to create new partition with following values:<br/><ul><li>Command: **n**<li>Partition Number: `default`<li>First Sector: **34**<li>Last Sector: **2047**<li>partition type **ef02**<li>Command: **w** to write the changes</ul>    |    ![Gdisk Execution](./artifacts/gdisk.png)
+5    |    Update partition table changes:`partprobe /dev/sda`    |    
+6    |    Install Bootloader in re-partitioned boot disk:<ul><li>**For Ubuntu**: `grub-install /dev/sda`<li>**For RHEL & SLES** `grub2-install /dev/sda`</ul>    |    ![grub execute](./artifacts/grubinstall.png)
+7    |    **Non-Azure** Execute gdisk to add an `EFI System` partition (ESP) with partition type **ef00**. Recommended size is **+200M** <br/>**Command**: `gdisk /dev/sda` |    ![EF00 partition](./artifacts/03.On-PremiseEF02.png)
+8    |    **Non-Azure** Execute gdisk to rename above created partition to `EFI-system`<br/>**Command**: `gdisk /dev/sda`    |    ![EFI-system rename](./artifacts/04-On-PremiseEFI-System.png)
+9    |    **Non-Azure** Build vfat filesystem for ESP.<br/>`mkfs -t vfat -v /dev/disk/by-partlabel/EFI-system`    |    ![Vfat ESP](./artifacts/05-vfat-ESP.png)
+10    |    **Non-Azure** If does not exists already; create ESP Mountpoint<br/>`mkdir /boot/efi`    |    
+11    |    Copy existing files in /boot/efi to temporary /mnt/folder.<ol><li>`mount -t vfat /dev/disk/by-partlabel/EFI-system /mnt`<li>`mv  /boot/efi/* /mnt`<li>`umount /mnt`</li></ol>    |    
+12    |    **Non-Azure** Add the ESP mountpoint to /etc/fstab. (replace spaces with tab key)<br/>`/dev/disk/by-partlabel/EFI-system /boot/efi vfat defaults 0 2`    |    ![ESP Mount](./artifacts/06-ESP-Mount.png)
+13    |    **Non-Azure** Mount ESP<br/>`mount /boot/efi`    |    
+14    |    **Non-Azure** Install the GRUB EFI bootloader.<br/>**Ubuntu/Debian:**<br/>`grub-install --target=x86_64-efi /dev/sda`<br/>**RHEL:**<br/>`grub2-install --target=x86_64-efi /dev/sda`    |    ![grub2 efi install](./artifacts/07a-grub2-efi-install.png)<br/>![grub 2 efi install contd](./artifacts/07b-grub2-efi-install.png)
 
 ## Troubleshooting
 

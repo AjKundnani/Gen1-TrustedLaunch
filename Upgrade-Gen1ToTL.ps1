@@ -385,21 +385,21 @@ foreach ($importVm in $importVmArray) {
             #region - MBR to GPT conversion
             if ($gen2Vm -eq $false) {
                 if ($currentOsDiskConfig.osType -eq "Linux") {
-                    $messageTxt = "Executing grub installation and MBR to GPT conversion on $vmname"
-                    Write-Output $messageTxt
-                    $commandId = "RunShellScript"
-                    switch ($currentOs.OsName) {
-                        "Ubuntu" {
-                            $scriptString = "gdisk /dev/sda \
-                                            partprobe /dev/sda \
-                                            grub-install /dev/sda"
-                        }
-                        default {
-                            $scriptString = "gdisk /dev/sda \
-                                            partprobe /dev/sda \
-                                            grub2-install /dev/sda"
-                        }
-                    }
+                    $messageTxt = "Assuming MBR to GPT conversion has been completed as per documented pre-requisites. Proceeding with Trusted launch upgrade."
+                    Write-Warning $messageTxt
+                    # $commandId = "RunShellScript"
+                    # switch ($currentOs.OsName) {
+                    #     "Ubuntu" {
+                    #         $scriptString = "gdisk /dev/sda \
+                    #                         partprobe /dev/sda \
+                    #                         grub-install /dev/sda"
+                    #     }
+                    #     default {
+                    #         $scriptString = "gdisk /dev/sda \
+                    #                         partprobe /dev/sda \
+                    #                         grub2-install /dev/sda"
+                    #     }
+                    # }
                 } else {
                     $messageTxt = "Executing MBR to GPT conversion on $vmname"
                     Write-Output $messageTxt
