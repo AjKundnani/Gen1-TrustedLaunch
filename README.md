@@ -13,6 +13,8 @@ Newer OS like Windows Server 2022 Azure Edition require UEFI, Windows 11 require
 You can now upgrade existing Gen1 (BIOS) VMs to Trusted launch by on-boarding to preview at **https://aka.ms/Gen1ToTLUpgrade**.
 This repository provides end users with PowerShell script-based guidance which they can self-execute & upgrade existing Gen1 (BIOS) VMs to Gen2 (UEFI) VMs.
 
+**NOTE**: Please review the list of [Known issues](#known-issues) before executing validation.
+
 **IMPORTANT DISCLAIMER**
 
 **Production use:** The Preview should only be used for testing, evaluation and feedback. Production workloads are **not recommended.**
@@ -91,6 +93,14 @@ Share following log files available at `%windir%` with feature team to troublesh
 - setuperr.log
 
 ## Known issues
+
+### CRITICAL - Windows 11 boot fails
+
+Windows 10 Gen1 VM is successfully upgraded to Trusted launch followed by successful Windows 11 in-place upgrade. However, the Windows 11 boot fails after Azure VM is stopped and started with below error.
+
+![Windows 11 boot error](./artifacts/01.%20errorWindows11Boot.jpg)
+
+Team is actively troubleshooting this issue.
 
 ### Gen1 to Trusted launch upgrade for Linux distros
 
