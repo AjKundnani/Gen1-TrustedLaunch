@@ -91,8 +91,8 @@ Execute these steps on Linux Gen1 VM to complete MBR to GPT conversion before ex
 
 Id    |    Step    |    Description
 -|-|-
-1    |    Query the OS Disk using below command<br/> `lsblk -o NAME,HCTL,SIZE,MOUNTPOINT \| grep -i "sd"` | Identify the boot partition and associated disk
-2    |    Backup MBR partition:<br/>`dd if=/dev/sda of=backup.mbr bs=512 count=1`    |    Backup should be taken on drive other than Boot drive.
+1    |    Query the OS Disk using below command<br/> `lsblk -o NAME,HCTL,SIZE,MOUNTPOINT \| grep -i "sd"` | Identify the boot partition and associated disk<br/>![Identity boot partition](./artifacts/01-linux-identify-boot-partition.png)
+2    |    Backup MBR partition:<br/>`dd if=/dev/sda of=backup.mbr bs=512 count=1`    |    Backup should be taken on drive other than Boot drive.<br/>![Backup boot partition](./artifacts/02-backup-boot-partition.png)
 3    |    **Non-Azure** Install `EFI Package`:<ul><li>**For Ubuntu**: `apt install grub-efi-amd64`<br/>*Note*: `grub-efi-amd64-signed` is recommended if supported by OS configuration.<li>**For RHEL**: `yum install gdisk grub2-x64-efi-modules efibootmgr dosfstools -y`</li></ul> | ![Ubuntu grub efi](./artifacts/01.On-Premise-Ubuntu.png)<br/>![RHEL grub efi](./artifacts/02.On-Premise-RHEL.png)
 4    |    Execute gdisk command `gdisk /dev/sda`to create new partition with following values:<br/><ul><li>Command: **n**<li>Partition Number: `default`<li>First Sector: **34**<li>Last Sector: **2047**<li>partition type **ef02**<li>Command: **w** to write the changes</ul>    |    ![Gdisk Execution](./artifacts/gdisk.png)
 5    |    Update partition table changes:`partprobe /dev/sda`    |    
