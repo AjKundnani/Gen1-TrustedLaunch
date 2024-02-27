@@ -41,6 +41,7 @@ Best Practice    |    Description
 -|-
 Validate in lower environment    |    Enable Trusted launch on a test Generation 2 VM and ensure if any changes are required to meet the prerequisites before enabling Trusted launch on Generation 2 VMs associated with production workloads.
 **Backup** Gen1 VM    |    Create restore point for Azure Generation 1 VM(s) associated with  workloads before enabling Trusted launch security type. You can use the Restore Point to re-create the disks and Generation 1 VM with the previous well-known state.
+OS Disk free space    |    You will not be able to extend OS disk system volume after MBR to GPT conversion. Recommendation is to extend system volume for future before executing Gen2-Trusted launch upgrade.
 
 ## High-Level Upgrade Workflow
 
