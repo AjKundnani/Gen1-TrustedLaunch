@@ -36,10 +36,7 @@ Id    |    Step    |    Description
 4    |    De-Allocate Gen1 VM and download OS Disk VHD locally.    |    Downloaded OS disk boot partition will be converted from MBR to GPT using MBR2GPT Utility.<br/>Time taken for download is dependent on disk size and network throughput.<br/>Assuming script is executed in same region as Gen1 VM, and OS Disk size of 128GB, download can take ~35-40 minutes to complete.<br/>**NOTE**: If Public IP is set to type `Dynamic`, the IP will get released with de-allocation of VM. If workload has dependency on Public IP, change the IP Type to `Static` before executing script.
 5    |    Mount VHD and convert boot partition from MBR to GPT.    |    This step is applicable for Windows OS only.<br/> For Linux, disk should be converted using `gdisk`, refer to steps listed under heading [MBR to GPT Conversion - Azure Linux](#mbr-to-gpt-conversion---azure-linux).
 6    |    Upload converted VHD and create new Azure disk.    |    GPT converted Azure disk will be used to create new Gen2 VM using existing OS disk.<br/>Time taken for upload is dependent on disk size and network throughput.<br/>Assuming script is executed in same region as Gen2 TLVM, and OS Disk size of 128GB, upload can take ~20-30 minutes to complete.
-7    |    Change VM association for NICs, Data Disks.    |    Existing NICs and data disks will be detached from Gen1 VM and will be attached to Gen2 VM with same configuration (like LUN)
-8    |    (Optional) Clean-up Gen1 VM and OS Disk.    |    Based on user selection of script parameters, script will remove existing Gen1 VM and OS Disk.
-9    |    Create new Gen2 VM using Azure disk created in step 6.    |    New Gen2 VM using converted OS disk and existing resources from Gen1 VM (NICs, Data Disks) will be created.
-10    |    Validate domain-trust for Gen2 VMs deployed in Step 9.    |    If the Gen1 VM was domain-joined, script will validate domain-trust status between Gen2 VM and Active Directory. If broken, script will prompt to attempt repair.
+7    |    Swap OS Disk and upgrades Gen1 VM to Trusted launch.    |    OS Disk is swapped with converted and uploaded disk. VM is updated to Trusted launch VM and started.
 
 ## MBR to GPT Conversion - Azure Linux
 
@@ -63,11 +60,6 @@ Id    |    Step    |    Description
 After successful conversion of Gen1 to Trusted Launch VM, user needs to perform required steps for applicable scenarios from below list:
 
 1. Validate health of Virtual Machine OS and workload hosted on converted Gen2 TLVM.
-2. VM extensions (like Azure Monitor) should be re-installed on Gen2 VM resource. **Note**: Certain extensions like DSC will continue to work post-conversion inside VM, they'll not be listed on Portal *Extensions* blade.
-3. If previously enabled on Gen1 VM, configure & enable Azure Backup, Disaster Recovery & Monitoring for Gen2 TLVM.
-4. If any VM resource-level RBAC created on Gen1 VM, configure same RBAC for converted Gen2 TLVM.
-5. Validate Load Balancer (Including App Gateway, Front-Door, Traffic Manager) backend IP configuration. As the source Gen1 VM NIC is moved to Gen2 VM, the backend configuration should point to Gen2 TLVM without manual change.
-6. If Gen1 VM is using `System-assigned` or `User-assigned` identity, enable identity for Gen2 TLVM.
 
 ## Roll-Back
 
