@@ -347,27 +347,33 @@ foreach ($importVm in $importVmArray) {
             #region - MBR to GPT Validation
             if ($gen2Vm -eq $false) {
                 if ($currentOsDiskConfig.osType -ne "Linux") {
-                    $messageTxt = "Validating MBR to GPT conversion support for $vmname"
-                    Write-Output $messageTxt
-                    $commandId = "RunPowerShellScript"
-                    $scriptString = "MBR2GPT /validate /allowFullOS"
-                    $paramInvokeAzVMRunCommand = @{
-                        ResourceGroupName = $vmResourceGroupName
-                        VMName            = $vmName
-                        CommandId         = $commandId
-                        ScriptString      = $scriptString
-                        ErrorAction       = 'Stop'
-                    }
-                    $mbrtogptValidate = Invoke-AzVMRunCommand @paramInvokeAzVMRunCommand
-                    Write-Output $mbrtogptValidate
-
-                    if ($mbrtogptValidate.Value[-1].Message -or !($mbrtogptValidate.Value[0].Message)) {
-                        $messagetxt = "MBR to GPT support validation for Windows $vmname failed. Terminating script execution."
+                    if ($currentOs.OsName -contains '2016') {
+                        $messagetxt = "Windows Server 2016 does not supports native MBR to GPT upgrade. Please follow offline upgrade path available in GitHub repo. Terminating script"
                         Write-Error $messagetxt
-                        Set-ErrorLevel -1    
+                        Set-ErrorLevel -1
                     } else {
-                        $messagetxt = "MBR to GPT support validation for Windows $vmname completed successfully."
-                        Write-Output $messagetxt
+                        $messageTxt = "Validating MBR to GPT conversion support for $vmname"
+                        Write-Output $messageTxt
+                        $commandId = "RunPowerShellScript"
+                        $scriptString = "MBR2GPT /validate /allowFullOS"
+                        $paramInvokeAzVMRunCommand = @{
+                            ResourceGroupName = $vmResourceGroupName
+                            VMName            = $vmName
+                            CommandId         = $commandId
+                            ScriptString      = $scriptString
+                            ErrorAction       = 'Stop'
+                        }
+                        $mbrtogptValidate = Invoke-AzVMRunCommand @paramInvokeAzVMRunCommand
+                        Write-Output $mbrtogptValidate
+
+                        if ($mbrtogptValidate.Value[-1].Message -or !($mbrtogptValidate.Value[0].Message)) {
+                            $messagetxt = "MBR to GPT support validation for Windows $vmname failed. Terminating script execution."
+                            Write-Error $messagetxt
+                            Set-ErrorLevel -1    
+                        } else {
+                            $messagetxt = "MBR to GPT support validation for Windows $vmname completed successfully."
+                            Write-Output $messagetxt
+                        }
                     }
                 }
             }
