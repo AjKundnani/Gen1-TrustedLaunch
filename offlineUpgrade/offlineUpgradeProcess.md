@@ -38,6 +38,36 @@ Id    |    Step    |    Description
 6    |    Upload converted VHD and create new Azure disk.    |    GPT converted Azure disk will be used to create new Gen2 VM using existing OS disk.<br/>Time taken for upload is dependent on disk size and network throughput.<br/>Assuming script is executed in same region as Gen2 TLVM, and OS Disk size of 128GB, upload can take ~20-30 minutes to complete.
 7    |    Swap OS Disk and upgrades Gen1 VM to Trusted launch.    |    OS Disk is swapped with converted and uploaded disk. VM is updated to Trusted launch VM and started.
 
+## Script execution
+
+Parameter Name    |    Description    |    Mandatory
+-|-|-
+subscriptionId    |    Subscription ID for Gen1 VM to be upgraded.    |    True
+tenantDomain    |    Primary AAD Domain Name for authentication. (For example, contoso.onmicrosoft.com)    |    True
+vmName    |    Resource Name of Gen1 VM to be upgraded.    |    True
+vmResourceGroupName    |    Resource Group for Gen1 VM to be upgraded.    |    True
+targetOsDiskName    |    Resource name of Gen2-Trusted launch OS disk.    |    True
+workingDirectory    |    Local path where Gen1 OS Disk vhd will be downloaded.    |    True
+disableSecureBoot    |    Disable secure boot as part of Trusted launch VM upgrade. Secure boot will be enabled by default.    |    False
+downloadAndConvertOnly    |    Download Gen1 OS Disk VHD and execute MBR to GPT only.    |    False
+uploadAndDeployOnly    |    Upload GPT converted OS disk and update VM configuration to Gen2-Trusted launch.    |    False
+
+
+**Example**
+
+```azurepowershell
+.\Convert-Gen1ToTLVM.ps1 -subscriptionId $subscriptionId -tenantDomain $tenantDomain -vmName ws2016vm01 -vmResourceGroupName testrg -targetOsDiskName ws2016vm01-osdisk -workingDirectory F:\workingdir\
+    
+Convert Gen1 VM to Trusted Launch VM.
+```
+
+```azurepowershell
+.\Convert-Gen1ToTLVM.ps1 -subscriptionId $subscriptionId -tenantDomain $tenantDomain -vmName ws2016vm01 -vmResourceGroupName testrg -targetOsDiskName ws2016vm01-osdisk -workingDirectory F:\workingdir\ -uploadAndDeployOnly
+    
+Disk is already converted to GPT locally. Uploads the disk and converts the VM from Gen1 to Trusted launch
+```
+
+
 ## MBR to GPT Conversion - Azure Linux
 
 Execute these steps on Azure Linux Gen1 VM to complete MBR to GPT conversion before executing Gen1 -> Trusted Launch upgrade script.
@@ -53,7 +83,6 @@ Id    |    Step    |    Description
 5    |    Install Bootloader in re-partitioned boot disk:<ul><li>**For Ubuntu**: `grub-install /dev/sda`<li>**For RHEL & SLES** `grub2-install /dev/sda`</ul>    |    ![grub execute](./.attachments/grubinstall.png)
 6    |    Execute `ConvertGen1ToTLVM.ps1` script to complete Gen1 -> Trusted Launch upgrade.<br/>**Note**: M-Series VMs currently do not support Trusted Launch, use parameter `-DisableTrustedLaunch` to skip TL configuration.    |    
 7    |    Validate bootloader: `if test -d /sys/firmware/efi; then echo efi; else echo bios; fi`    |    Expected Response: **efi**
-
 
 ## Post-Conversion Activities
 

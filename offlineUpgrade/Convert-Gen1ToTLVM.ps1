@@ -65,16 +65,6 @@ Local directory used to download OS Disk on Windows 10/11 machine where MBR2GPT 
     
     Disk is already converted to GPT locally. Uploads the disk and converts the VM from Gen1 to Trusted launch
 
-.EXAMPLE
-    .\Convert-Gen1ToTLVM.ps1 -subscriptionId <subscriptionId> -tenantDomain <aadTenantDomain> -vmName <gen1VmName> -sameTargetVmName -vmResourceGroupName <gen1VmResourceGroup> -targetVmRgName <gen2VmResourceGroup> -workingDirectory "<localPathForOsDiskDownload>"
-
-    Convert Gen1 VM to Gen2 VM using the same VM Name and different resource group. Note: Data disk & NIC associated with Gen1 VM will continue reside in Gen1 VM resource group and will need to be moved outside script.
-    
-.EXAMPLE
-    .\Convert-Gen1ToTLVM.ps1 -subscriptionId <subscriptionId> -tenantDomain <aadTenantDomain> -vmName <gen1VmName> -targetVmName <gen2VmName> -vmResourceGroupName <gen1VmResourceGroup> -workingDirectory "<localPathForOsDiskDownload>" -cleanupGen1Resources
-    
-    Convert Gen1 VM to Trusted Launch VM using different VM Name and same resource group. Clean-up Gen1 VM resources post-conversion
-
 .LINK
     https://learn.microsoft.com/en-us/azure/virtual-machines/trusted-launch
 
