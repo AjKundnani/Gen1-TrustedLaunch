@@ -124,6 +124,7 @@ Windows 10 Gen1 VM is successfully upgraded to Trusted launch followed by succes
 
 ![Windows 11 boot error](./artifacts/01.%20errorWindows11Boot.jpg)
 
+**Workaround** for the issue currently is to refresh the Windows 11 OS disk. For more details, [Refresh Windows 11 OS disk](./win11workaround/refreshWindows11OSDisk.md)
 Team is actively troubleshooting this issue.
 
 ### Gen1 to Trusted launch upgrade for Linux distros

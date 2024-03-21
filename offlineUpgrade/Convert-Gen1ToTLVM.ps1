@@ -333,7 +333,7 @@ try {
             $messagetxt = "Module $($azModule.ModuleName) is not available, proceeding with Az Module install."
             Write-warning $messageTxt
             Write-LogEntry -logMessage $messageTxt -logSeverity 2 -logComponent "Setup-PreRequisites"
-            Install-Module -Name Az -Repository PSGallery -Force -Confirm:$false -ErrorAction 'Stop'
+            Install-Module -Name $($azModule.ModuleName) -Repository PSGallery -Force -Confirm:$false -ErrorAction 'Stop'
         }
     }
 

@@ -194,9 +194,9 @@ try {
                 Update-Module $($azModule.ModuleName) -ErrorAction 'Stop' -Confirm:$false -Force
             }
         } else {
-            $messagetxt = "Module $($azModule.ModuleName) is not available, proceeding with Az Module install."
+            $messagetxt = "Module $($azModule.ModuleName) is not available, proceeding with $($azModule.ModuleName) install."
             Write-warning $messageTxt
-            Install-Module -Name Az -Repository PSGallery -Force -Confirm:$false -ErrorAction 'Stop'
+            Install-Module -Name $($azModule.ModuleName) -Repository PSGallery -Force -Confirm:$false -ErrorAction 'Stop'
         }
     }
 
