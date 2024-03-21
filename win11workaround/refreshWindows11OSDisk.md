@@ -1,5 +1,7 @@
 # (PREVIEW) Gen1 to Trusted launch upgrade | Windows 11 boot issue.
 
+Post upgrade of Windows 10 Gen1 to Windows 11 Trusted launch, the VM goes into bad boot state potentially due to incorrect boot variables. The script [Refresh-Win11OSDisk](./Refresh-Win11OSDisk.ps1) can be executed to setup new Azure OS disk with content of existing Windows 11 OS disk to fix the required boot variables.
+
 ## High-Level Script Workflow
 
 Id    |    Step    |    Description
