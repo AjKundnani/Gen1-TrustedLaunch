@@ -266,9 +266,8 @@ if ($ERRORLEVEL -eq 0) {
             $messagetxt = "Proceeding with export and import for OS disk of $($vmName)"
             Write-Output $messagetxt
         } else {
-            $messagetxt = "OS disk is not related to Windows 11 upgrade issue. Terminating script"
-            Write-Error $messagetxt
-            Set-ErrorLevel -1
+            $messagetxt = "OS disk is does not seems related to Windows 11 upgrade issue. Proceeding."
+            Write-Warning $messagetxt
         }
     } catch [System.Exception] {
         $messageTxt = 'Error Exception Occurred' + "`n$($psitem.Exception.Message)" + "`nError Caused By: $(($psitem.InvocationInfo.Line).Trim())"
