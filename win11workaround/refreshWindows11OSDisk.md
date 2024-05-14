@@ -4,6 +4,7 @@ Post upgrade of Windows 10 Gen1 to Windows 11 Trusted launch, the VM goes into b
 
 ## Pre-Requisites
 
+- Windows 10 Gen1 to Windows 11 Trusted launch upgrade is complete and Windows 11 VM is in bad boot state.
 - OS disk is NOT [restricted for import/export](https://learn.microsoft.com/azure/virtual-machines/disks-restrict-import-export-overview).
 
 ## High-Level Script Workflow
