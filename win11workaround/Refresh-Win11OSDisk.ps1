@@ -133,11 +133,11 @@ try {
         }
         
         if (!($useCloudshell)) {
-            $messageTxt = "Setting up location of azcopy to $azCopyDir"
-            Write-Output $messageTxt
             $azCopyDir = (Get-ChildItem -Path $workingDirectory\azCopy\ | Where-Object { $psitem.Name -like "azcopy_windows*" }).Name
             $azCopyDir = "$workingDirectory\azCopy\$azCopyDir\"
             $env:AZCOPY_LOG_LOCATION = $azCopyDir
+            $messageTxt = "Setting up location of azcopy to $azCopyDir"
+            Write-Output $messageTxt
         }
     }
     else {
@@ -158,6 +158,7 @@ If ($ERRORLEVEL -eq 0) {
     try {
         $messageTxt = "Connecting to Subscription $subscriptionId under $tenantDomain"
         Write-Output $messageTxt
+        Update-AzConfig -EnableLoginByWam $false -ErrorAction 'Stop'
         #region - Enable-AzAccount()
         If ($useCloudshell -eq $true) {
             Set-AzContext -SubscriptionId $subscriptionId -tenant $tenantDomain -ErrorAction 'Stop'

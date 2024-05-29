@@ -167,6 +167,7 @@ If ($ERRORLEVEL -eq 0) {
     try {
         $messageTxt = "Connecting to Subscription $subscriptionId under $tenantDomain"
         Write-Output $messageTxt
+        Update-AzConfig -EnableLoginByWam $false -ErrorAction 'Stop'
         #region - Enable-AzAccount()
         if ($useCloudshell) {
             Set-AzContext -SubscriptionId $subscriptionId -tenant $tenantDomain -ErrorAction 'Stop'
@@ -602,7 +603,7 @@ if ($ERRORLEVEL -eq 0) {
                                 Write-LogEntry -logMessage $messageTxt -logSeverity 3 -logComponent "MBR-GPT-Validation"
                                 $sasToken = New-AzStorageContainerSASToken -Context $ctx -Name "gen1log" -Permission rawl -StartTime $((Get-Date).AddMinutes(-5)) -ExpiryTime $((Get-Date).AddHours(1)) -ErrorAction 'Stop'
                                 $outputBlobSasUri = "https://$outputStorageAccountName.blob.core.windows.net/gen1log/$vmName-mbr2gpt-validate-output.log?" + $sasToken
-                                $errorBlobSasUri = "https://$outputStorageAccountName.blob.core.windows.net/gen1log/$vmName-mbr2got-validate-error.log?" + $sasToken
+                                $errorBlobSasUri = "https://$outputStorageAccountName.blob.core.windows.net/gen1log/$vmName-mbr2gpt-validate-error.log?" + $sasToken
     
                                 $messageTxt = "Executing MBR to GPT validation for $vmName"
                                 Write-Output $messageTxt
