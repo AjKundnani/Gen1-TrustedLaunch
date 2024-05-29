@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
 Export and import Windows 11 OS disk to refresh Windows 11 OS Disk boot variables.
-Script Version: 2.01
+Script Version: 2.0.1
 
 .DESCRIPTION
 The Windows 11 boot issue post Gen1 to Trusted launch upgrade could be due to boot variable error. Run this script post Windows 11 in-place upgrade to refresh the boot variables for VM.
@@ -317,7 +317,7 @@ if ($ERRORLEVEL -eq 0) {
                 (
                     [Parameter(Mandatory = $true)]
                     [ValidateNotNullOrEmpty()]
-                    [string]$logMessage,
+                    $logMessage,
                     [Parameter(Mandatory = $false)]
                     [int]$logSeverity = 1,
                     [Parameter(Mandatory = $true)]
@@ -348,11 +348,23 @@ if ($ERRORLEVEL -eq 0) {
             #endregion
 
             Write-InitLog -logDirectory $workingDirectory -vmName $vmName
-            $messageTxt = "Script Version: 2.01"
+            $messageTxt = "Script Version: 2.0.1"
             Write-Output $messageTxt
             Write-LogEntry -logMessage $messageTxt -logSeverity 3 -logComponent "Setup-PreRequisites"
             Set-Errorlevel 0 | Out-Null
             Get-Errorlevel | Out-Null
+
+            $inputParam = @{
+                'VM name' = $vmName
+                'Target OS Disk Name' = $targetOsDiskName
+                'Resource group name' = $vmResourceGroupName
+                'Subscription ID' = $subscriptionId
+                'Tenant Domain' = $tenantDomain
+                'Use Cloud Shell' = $useCloudshell
+            }
+            $messageTxt = $inputParam.GetEnumerator() | ForEach-Object {"$($PSItem.Key) = $($PSItem.Value)"}
+            Write-Output $messageTxt
+            Write-LogEntry -logMessage $messageTxt -logSeverity 3 -logComponent "Setup-PreRequisites"
 
             #region - Connect Azure Subscription
             If ($ERRORLEVEL -eq 0) {

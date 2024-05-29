@@ -314,7 +314,7 @@ if ($ERRORLEVEL -eq 0) {
             (
                 [Parameter(Mandatory = $true)]
                 [ValidateNotNullOrEmpty()]
-                [string]$logMessage,
+                $logMessage,
                 [Parameter(Mandatory = $false)]
                 [int]$logSeverity = 1,
                 [Parameter(Mandatory = $true)]
@@ -384,8 +384,10 @@ if ($ERRORLEVEL -eq 0) {
                 'Output Storage Account Name' = $outputStorageAccountName
                 'Enable Secure Boot' = $enableSecureBoot
             }
+            $messageTxt = $inputParam.GetEnumerator() | ForEach-Object {"$($PSItem.Key) = $($PSItem.Value)"}
+            Write-Output $messageTxt
+            Write-LogEntry -logMessage $messageTxt -logSeverity 3 -logComponent "Setup-PreRequisites"
             
-
             $messageTxt = "Processing VM $vmName under resource group $vmResourceGroupName with Secure boot $($importVm.enableSecureBoot)"
             Write-Output $messageTxt
             Write-LogEntry -logMessage $messageTxt -logSeverity 3 -logComponent "Setup-PreRequisites"
