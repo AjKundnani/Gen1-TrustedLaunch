@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
 Upgrades Azure VM from Gen1 to Trusted Launch Configuration with OS State preserved.
-Script Version - 2.01
+Script Version - 2.1.0
 
 .DESCRIPTION
     PREREQUISITES:
@@ -45,7 +45,7 @@ Local file path location of csv containing vmName, vmResourceGroupName, enableSe
 (Optional) Use end to end signed script for upgrade.
 
 .PARAMETER outputStorageAccountName
-(Required with useSignedScript) Name of storage account where output and error file will be stored. Storage Data Contributor or Storage Data Owner access required on storage account.
+(Required with useSignedScript) Name of storage account where output and error file will be stored. Storage Blob Data Contributor or Storage Blob Data Owner access required on storage account.
 
 .PARAMETER vmName
 (Csv input parameter) Resource Name of Gen1 VM to be upgraded
@@ -83,7 +83,7 @@ param (
     [switch]$useCloudshell,
     [Parameter(Mandatory = $false, HelpMessage = "Use end to end signed script for upgrade.")]
     [switch]$useSignedScript,
-    [Parameter(Mandatory = $false, HelpMessage = "Required if useSignedScript is set. Name of storage account where output and error file will be stored. Storage Data Contributor or Storage Data Owner access required on storage account.")]
+    [Parameter(Mandatory = $false, HelpMessage = "Required if useSignedScript is set. Name of storage account where output and error file will be stored. Storage Blob Data Contributor or Storage Data Owner access required on storage account.")]
     [string][ValidateNotNullOrEmpty()]$outputStorageAccountName
 )
 
@@ -370,16 +370,21 @@ if ($ERRORLEVEL -eq 0) {
             } else {$workingDirectory = "$env:UserProfile\Gen1-TrustedLaunch-Upgrade"}
 
             Write-InitLog -logDirectory $workingDirectory -vmName $vmName
-            $messageTxt = "Script Version: 2.01"
+            $messageTxt = "Script Version: 2.1.0"
             Write-Output $messageTxt
             Write-LogEntry -logMessage $messageTxt -logSeverity 3 -logComponent "Setup-PreRequisites"
 
-            foreach ($key in $MyInvocation.BoundParameters.Keys) {
-                $value = (Get-Variable $key).Value
-                $messageTxt += [system.string]::concat("Value for parameter $key", " : $value`n")
+            $inputParam = @{
+                'VM name' = $vmName
+                'Resource group name' = $vmResourceGroupName
+                'Subscription ID' = $subscriptionId
+                'Tenant Domain' = $tenantDomain
+                'Use Cloud Shell' = $useCloudshell
+                'Use Signed Script' = $useSignedScript
+                'Output Storage Account Name' = $outputStorageAccountName
+                'Enable Secure Boot' = $enableSecureBoot
             }
-            Write-Output $messageTxt
-            Write-LogEntry -logMessage $messageTxt -logSeverity 3 -logComponent "Setup-PreRequisites"
+            
 
             $messageTxt = "Processing VM $vmName under resource group $vmResourceGroupName with Secure boot $($importVm.enableSecureBoot)"
             Write-Output $messageTxt
@@ -613,7 +618,7 @@ if ($ERRORLEVEL -eq 0) {
                                 Set-AzVMRunCommand @paramInvokeAzVMRunCommand | Out-Null
 
                                 $outputLog = (Get-AzStorageBlobContent -Blob "$vmName-mbr2gpt-validate-output.log" -Container "gen1log" -Context $ctx).ICloudBlob.DownloadText()
-                                $errorLog = (Get-AzStorageBlobContent -Blob "$vmName-mbr2got-validate-error.log" -Container "gen1log" -Context $ctx).ICloudBlob.DownloadText()
+                                $errorLog = (Get-AzStorageBlobContent -Blob "$vmName-mbr2gpt-validate-error.log" -Container "gen1log" -Context $ctx).ICloudBlob.DownloadText()
 
                                 if ($errorLog.Length -gt 0 -or $outputLog.Length -eq 0) {
                                     $messagetxt = "MBR to GPT support validation for Windows $vmname failed. Terminating script execution."
@@ -622,6 +627,8 @@ if ($ERRORLEVEL -eq 0) {
                                     Set-ErrorLevel -1    
                                 }
                                 else {
+                                    Remove-Item -Path "$vmName-mbr2gpt-validate-output.log" -Force -Confirm:$false
+                                    Remove-Item -Path "$vmName-mbr2gpt-validate-error.log" -Force -Confirm:$false
                                     $messagetxt = "MBR to GPT support validation for Windows $vmname completed successfully."
                                     Write-Output $messagetxt
                                     Write-LogEntry -logMessage $messageTxt -logSeverity 3 -logComponent "MBR-GPT-Validation"
@@ -734,6 +741,8 @@ if ($ERRORLEVEL -eq 0) {
                                 Set-ErrorLevel -1    
                             }
                             else {
+                                Remove-Item -Path "$vmName-mbr2gpt-convert-output.log" -Force -Confirm:$false
+                                Remove-Item -Path "$vmName-mbr2gpt-convert-error.log" -Force -Confirm:$false
                                 $messagetxt = "MBR to GPT support conversion for Windows $vmname completed successfully."
                                 Write-Output $messagetxt
                                 Write-LogEntry -logMessage $messageTxt -logSeverity 3 -logComponent "MBR-GPT-Execution"
@@ -741,26 +750,26 @@ if ($ERRORLEVEL -eq 0) {
                         } else {
                             $commandId = "RunPowerShellScript"
                             $scriptString = "MBR2GPT /convert /allowFullOS"
-                        }
-                        $paramInvokeAzVMRunCommand = @{
-                            ResourceGroupName = $vmResourceGroupName
-                            VMName            = $vmName
-                            CommandId         = $commandId
-                            ScriptString      = $scriptString
-                            ErrorAction       = 'Stop'
-                        }
-                        $mbrtogpt = Invoke-AzVMRunCommand @paramInvokeAzVMRunCommand
-                        # Write-Output $mbrtogpt
-                        if ($mbrtogpt.Value[-1].Message -or !($mbrtogpt.Value[0].Message)) {
-                            $messagetxt = "MBR to GPT conversion for Windows $vmname failed. Terminating script execution."
-                            Write-Error $messagetxt
-                            Write-LogEntry -logMessage $messageTxt -logSeverity 1 -logComponent "MBR-GPT-Execution"
-                            Set-ErrorLevel -1    
-                        }
-                        else {
-                            $messagetxt = "MBR to GPT conversion for Windows $vmname completed successfully."
-                            Write-Output $messagetxt
-                            Write-LogEntry -logMessage $messageTxt -logSeverity 3 -logComponent "MBR-GPT-Execution"
+                            $paramInvokeAzVMRunCommand = @{
+                                ResourceGroupName = $vmResourceGroupName
+                                VMName            = $vmName
+                                CommandId         = $commandId
+                                ScriptString      = $scriptString
+                                ErrorAction       = 'Stop'
+                            }
+                            $mbrtogpt = Invoke-AzVMRunCommand @paramInvokeAzVMRunCommand
+                            # Write-Output $mbrtogpt
+                            if ($mbrtogpt.Value[-1].Message -or !($mbrtogpt.Value[0].Message)) {
+                                $messagetxt = "MBR to GPT conversion for Windows $vmname failed. Terminating script execution."
+                                Write-Error $messagetxt
+                                Write-LogEntry -logMessage $messageTxt -logSeverity 1 -logComponent "MBR-GPT-Execution"
+                                Set-ErrorLevel -1    
+                            }
+                            else {
+                                $messagetxt = "MBR to GPT conversion for Windows $vmname completed successfully."
+                                Write-Output $messagetxt
+                                Write-LogEntry -logMessage $messageTxt -logSeverity 3 -logComponent "MBR-GPT-Execution"
+                            }
                         }
                     }
                 }
