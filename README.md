@@ -26,13 +26,14 @@ Preview features are not backed with Microsoft Support SLA.
 Pre-Requisite    |    Description
 -|-
 On-board subscription for preview    |    Register for **Gen1 to Trusted launch upgrade preview** at https://aka.ms/Gen1ToTLUpgrade.
+[PowerShell version 7.2 or above](https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-windows)    |    Required version for parallel processing.
 [Az PowerShell Module](https://learn.microsoft.com/powershell/azure/what-is-azure-powershell)    |    Required cmdlets for Azure Platform.
 VM Contributor rights on Gen1 VM resource group.    |    Required RBAC permissions to modify and re-deploy Gen1 VM.
 VM is in allocated / Running state.    |    Required to read current state and configuration of Gen1 VM and execute MBR to GPT conversion.
 Operating System    |    Operating system should be [Trusted launch supported.](https://aka.ms/TrustedLaunch) except <ul><li>Windows Server 2016</li></ul>**NOTE**:<ul><li>For Linux VMs, execute MBR to GPT locally on VM. Refer to steps [Linux MBR to GPT conversion](#linux-os-mbr-to-gpt-conversion)<li> Windows Server 2016 does not natively supports `MBR to GPT` conversion and requires offline upgrade process. For more details refer to [Perform offline upgrade using `Convert-Gen1ToTLVM.ps1`](./offlineUpgrade/offlineUpgradeProcess.md)</li></ul>
 Azure IaaS VM Agent    |    [Azure IaaS Windows VM Agent](https://learn.microsoft.com/azure/virtual-machines/extensions/agent-windows) OR [Azure IaaS Linux VM Agent](https://learn.microsoft.com/azure/virtual-machines/extensions/agent-linux) should be installed and healthy.
 Disk Encryption    |    If enabled, Disable any OS disk encryption including Bitlocker, CRYPT, [Server side encryption with customer managed keys](https://learn.microsoft.com/azure/virtual-machines/disk-encryption) prior to upgrade. All disk encryptions should be re-enabled post successful upgrade.
-VM Backup    |    Azure Backup if enabled for VM(s) should be configured with Enhanced Backup Policy. Trusted launch security type cannot be enabled for Generation 2 VM(s) configured with Standard Policy backup protection.<br/>Existing Azure VM backup can be migrated from Standard to Enhanced policy using [preview migration feature](https://learn.microsoft.com/azure/backup/backup-azure-vm-migrate-enhanced-policy).
+VM Backup    |    Azure Backup if enabled for VM(s) should be configured with Enhanced Backup Policy. Trusted launch security type cannot be enabled for Generation 2 VM(s) configured with Standard Policy backup protection.<br/>Existing Azure VM backup can be migrated from Standard to Enhanced policy using private preview migration feature. Submit on-boarding request to preview using link https://aka.ms/formBackupPolicyMigration.
 VM Disaster Recovery    |    Trusted launch VMs currently do not support Azure Site Recovery (ASR). If enabled, ASR should be disabled prior to upgrade.
 
 ## Best Practices
@@ -61,6 +62,8 @@ Parameter Name    |    Description    |    Mandatory
 subscriptionId    |    Subscription ID for Gen1 VM to be upgraded.    |    True
 tenantDomain    |    Primary AAD Domain Name for authentication. (For example, contoso.onmicrosoft.com)    |    True
 csvLocation    |    Local file path location of csv containing vmName, vmResourceGroupName, enableSecureBoot details.    |    True
+batchSize      |    Number of machines which should be processed in parallel. Default set to 5.    |    False
+useCloudShell    |    Use cloud shell in Azure Portal for script execution.    |    False
 
 Csv column Name    |    Description    |    Mandatory
 -|-|-
@@ -108,6 +111,8 @@ Id    |    Step    |    Description
 14    |    **Non-Azure** Install the GRUB EFI bootloader.<br/>**Ubuntu/Debian:**<br/>`grub-install --target=x86_64-efi /dev/sda`<br/>**RHEL:**<br/>`grub2-install --target=x86_64-efi /dev/sda`    |    ![grub2 efi install](./artifacts/07a-grub2-efi-install.png)<br/>![grub 2 efi install contd](./artifacts/07b-grub2-efi-install.png)
 
 ## Troubleshooting
+
+Share the log files available under folder `Gen1-Trustedlaunch-Upgrade` at `%userprofile%` with feature team to troubleshoot Gen1 to Trusted launch upgrade.
 
 ### MBR2GPT - Windows
 
