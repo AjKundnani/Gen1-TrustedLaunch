@@ -36,10 +36,16 @@ Primary AAD Domain Name for authentication. (For example, contoso.onmicrosoft.co
 Local file path location of csv containing vmName, vmResourceGroupName, enableSecureBoot details.
 
 .PARAMETER batchSize
-Number of machines which should be processed in parallel. Default set to 5.
+(Optional) Number of machines which should be processed in parallel. Default set to 5.
 
 .PARAMETER useCloudshell
-Use cloud shell in Azure Portal for script execution.
+(Optional) Use cloud shell in Azure Portal for script execution.
+
+.PARAMETER useSignedScript
+(Optional) Use end to end signed script for upgrade.
+
+.PARAMETER outputStorageAccountName
+(Required with useSignedScript) Name of storage account where output and error file will be stored. Storage Data Contributor or Storage Data Owner access required on storage account.
 
 .PARAMETER vmName
 (Csv input parameter) Resource Name of Gen1 VM to be upgraded
@@ -74,7 +80,11 @@ param (
     [Parameter(Mandatory = $false, HelpMessage = "Number of machines which should be processed in parallel. Default set to 5.")]
     [int][ValidateNotNullOrEmpty()]$batchSize,
     [Parameter(Mandatory = $false, HelpMessage = "Use cloud shell in Azure Portal for script execution.")]
-    [switch]$useCloudshell
+    [switch]$useCloudshell,
+    [Parameter(Mandatory = $false, HelpMessage = "Use end to end signed script for upgrade.")]
+    [switch]$useSignedScript,
+    [Parameter(Mandatory = $false, HelpMessage = "Required if useSignedScript is set. Name of storage account where output and error file will be stored. Storage Data Contributor or Storage Data Owner access required on storage account.")]
+    [string][ValidateNotNullOrEmpty()]$outputStorageAccountName
 )
 
 #region - Validate Pre-Requisites
@@ -93,7 +103,6 @@ try {
     if ($useCloudshell) {
         $workingDirectory = [system.string]::concat((Get-Location).Path, "/Gen1-TrustedLaunch-Upgrade")
     } else {$workingDirectory = "$env:UserProfile\Gen1-TrustedLaunch-Upgrade"}
-    
     if ((Test-Path $workingDirectory) -eq $true) {
         $messageTxt = "Working Directory Already Setup $workingDirectory"
         Write-Output $messageTxt
@@ -103,6 +112,13 @@ try {
         Write-Output $messageTxt
         New-Item -ItemType Directory -Path (Split-Path $workingDirectory -Parent) -Name (Split-Path $workingDirectory -Leaf) -ErrorAction 'Stop' | Out-Null
     }
+
+    If ($useSignedScript -and !($outputStorageAccountName)) {
+        $messagetxt = "Output storage account name is required if useSignedScript is set."
+        Write-Error $messageTxt
+        Set-Variable -Name ERRORLEVEL -Value -1 -Scope Script -Force
+    }
+
     $azPsModule = @(@{
             ModuleName = 'Az.Accounts'
             Version    = [version]"2.8.0"
@@ -219,6 +235,10 @@ if ($ERRORLEVEL -eq 0) {
         if ($useCloudshell) {
             $element | Add-Member -MemberType NoteProperty -Name 'useCloudShell' -Value $true
         }
+        if ($useSignedScript) {
+            $element | Add-Member -MemberType NoteProperty -Name 'useSignedScript' -Value $true
+            $element | Add-Member -MemberType NoteProperty -Name 'storageAccountName' -Value $outputStorageAccountName
+        }
     }
 
     $importVmArray | ForEach-Object -ThrottleLimit $batchSize -Parallel  {
@@ -330,6 +350,8 @@ if ($ERRORLEVEL -eq 0) {
         $subscriptionId = $importVm.subscriptionID
         $tenantDomain = $importVm.tenantDomain
         $useCloudshell = $importVm.useCloudShell
+        $outputStorageAccountName = $importVm.storageAccountName
+        $useSignedScript = $importVm.useSignedScript
         
         if ($importVm.enableSecureBoot) {
             $enableSecureBoot = [system.convert]::ToBoolean($importVm.enableSecureBoot)
@@ -557,28 +579,77 @@ if ($ERRORLEVEL -eq 0) {
                             $messageTxt = "Validating MBR to GPT conversion support for $vmname"
                             Write-Output $messageTxt
                             Write-LogEntry -logMessage $messageTxt -logSeverity 3 -logComponent "MBR-GPT-Validation"
-                            $commandId = "RunPowerShellScript"
-                            $scriptString = "MBR2GPT /validate /allowFullOS"
-                            $paramInvokeAzVMRunCommand = @{
-                                ResourceGroupName = $vmResourceGroupName
-                                VMName            = $vmName
-                                CommandId         = $commandId
-                                ScriptString      = $scriptString
-                                ErrorAction       = 'Stop'
-                            }
-                            $mbrtogptValidate = Invoke-AzVMRunCommand @paramInvokeAzVMRunCommand
-                            # Write-Output $mbrtogptValidate
-
-                            if ($mbrtogptValidate.Value[-1].Message -or !($mbrtogptValidate.Value[0].Message)) {
-                                $messagetxt = "MBR to GPT support validation for Windows $vmname failed. Terminating script execution."
-                                Write-Error $messagetxt
-                                Write-LogEntry -logMessage $messageTxt -logSeverity 1 -logComponent "MBR-GPT-Validation"
-                                Set-ErrorLevel -1    
-                            }
-                            else {
-                                $messagetxt = "MBR to GPT support validation for Windows $vmname completed successfully."
-                                Write-Output $messagetxt
+                            If ($useSignedScript -eq $true) {
+                                $messageTxt = "Using signed script for executing MBR to GPT validation"
+                                Write-Output $messageTxt
                                 Write-LogEntry -logMessage $messageTxt -logSeverity 3 -logComponent "MBR-GPT-Validation"
+    
+                                $messageTxt = "Creating container gen1log in storage account $outputStorageAccountName"
+                                Write-Output $messageTxt
+                                Write-LogEntry -logMessage $messageTxt -logSeverity 3 -logComponent "MBR-GPT-Validation"
+                                $ctx = New-AzStorageContext -StorageAccountName $outputStorageAccountName -UseConnectedAccount -erroraction 'stop'
+                                New-AzStoragecontainer -Name "gen1log" -Context $ctx -ErrorAction 'SilentlyContinue' | Out-Null
+    
+                                $messageTxt = "Generating SAS URL for output file in storage account $outputStorageAccountName"
+                                Write-Output $messageTxt
+                                Write-LogEntry -logMessage $messageTxt -logSeverity 3 -logComponent "MBR-GPT-Validation"
+                                $sasToken = New-AzStorageContainerSASToken -Context $ctx -Name "gen1log" -Permission rawl -StartTime $((Get-Date).AddMinutes(-5)) -ExpiryTime $((Get-Date).AddHours(1)) -ErrorAction 'Stop'
+                                $outputBlobSasUri = "https://$outputStorageAccountName.blob.core.windows.net/gen1log/$vmName-mbr2gpt-validate-output.log?" + $sasToken
+                                $errorBlobSasUri = "https://$outputStorageAccountName.blob.core.windows.net/gen1log/$vmName-mbr2got-validate-error.log?" + $sasToken
+    
+                                $messageTxt = "Executing MBR to GPT validation for $vmName"
+                                Write-Output $messageTxt
+                                Write-LogEntry -logMessage $messageTxt -logSeverity 3 -logComponent "MBR-GPT-Validation"
+                                $paramInvokeAzVMRunCommand = @{
+                                    ResourceGroupName = $vmResourceGroupName
+                                    VMName            = $vmName
+                                    Location          = $CurrentVMConfig.location
+                                    RunCommandName    = [system.string]::Concat($vmName, "-MBR2GPT-Validate")
+                                    SourceScriptUri   = "https://raw.githubusercontent.com/AjKundnani/Gen1-TrustedLaunch/main/artifacts/Validate-MBRToGPT.ps1"
+                                    OutputBlobUri     = $outputBlobSasUri
+                                    ErrorBlobUri      = $errorBlobSasUri
+                                    ErrorAction       = 'Stop'
+                                }
+                                Set-AzVMRunCommand @paramInvokeAzVMRunCommand | Out-Null
+
+                                $outputLog = (Get-AzStorageBlobContent -Blob "$vmName-mbr2gpt-validate-output.log" -Container "gen1log" -Context $ctx).ICloudBlob.DownloadText()
+                                $errorLog = (Get-AzStorageBlobContent -Blob "$vmName-mbr2got-validate-error.log" -Container "gen1log" -Context $ctx).ICloudBlob.DownloadText()
+
+                                if ($errorLog.Length -gt 0 -or $outputLog.Length -eq 0) {
+                                    $messagetxt = "MBR to GPT support validation for Windows $vmname failed. Terminating script execution."
+                                    Write-Error $messagetxt
+                                    Write-LogEntry -logMessage $messageTxt -logSeverity 1 -logComponent "MBR-GPT-Validation"
+                                    Set-ErrorLevel -1    
+                                }
+                                else {
+                                    $messagetxt = "MBR to GPT support validation for Windows $vmname completed successfully."
+                                    Write-Output $messagetxt
+                                    Write-LogEntry -logMessage $messageTxt -logSeverity 3 -logComponent "MBR-GPT-Validation"
+                                }
+                            } else {
+                                $commandId = "RunPowerShellScript"
+                                $scriptString = "MBR2GPT /validate /allowFullOS"
+                                $paramInvokeAzVMRunCommand = @{
+                                    ResourceGroupName = $vmResourceGroupName
+                                    VMName            = $vmName
+                                    CommandId         = $commandId
+                                    ScriptString      = $scriptString
+                                    ErrorAction       = 'Stop'
+                                }
+                                $mbrtogptValidate = Invoke-AzVMRunCommand @paramInvokeAzVMRunCommand
+                                # Write-Output $mbrtogptValidate
+    
+                                if ($mbrtogptValidate.Value[-1].Message -or !($mbrtogptValidate.Value[0].Message)) {
+                                    $messagetxt = "MBR to GPT support validation for Windows $vmname failed. Terminating script execution."
+                                    Write-Error $messagetxt
+                                    Write-LogEntry -logMessage $messageTxt -logSeverity 1 -logComponent "MBR-GPT-Validation"
+                                    Set-ErrorLevel -1    
+                                }
+                                else {
+                                    $messagetxt = "MBR to GPT support validation for Windows $vmname completed successfully."
+                                    Write-Output $messagetxt
+                                    Write-LogEntry -logMessage $messageTxt -logSeverity 3 -logComponent "MBR-GPT-Validation"
+                                }
                             }
                         }
                     }
@@ -620,21 +691,66 @@ if ($ERRORLEVEL -eq 0) {
                         $messageTxt = "Executing MBR to GPT conversion on $vmname"
                         Write-Output $messageTxt
                         Write-LogEntry -logMessage $messageTxt -logSeverity 3 -logComponent "MBR-GPT-Execution"
-                        $commandId = "RunPowerShellScript"
-                        $scriptString = "MBR2GPT /convert /allowFullOS"
-                    }
-        
-                    $paramInvokeAzVMRunCommand = @{
-                        ResourceGroupName = $vmResourceGroupName
-                        VMName            = $vmName
-                        CommandId         = $commandId
-                        ScriptString      = $scriptString
-                        ErrorAction       = 'Stop'
-                    }
-                    $mbrtogpt = Invoke-AzVMRunCommand @paramInvokeAzVMRunCommand
-                    # Write-Output $mbrtogpt
+                        if ($useSignedScript -eq $true) {
+                            $messageTxt = "Using signed script for executing MBR to GPT validation"
+                            Write-Output $messageTxt
+                            Write-LogEntry -logMessage $messageTxt -logSeverity 3 -logComponent "MBR-GPT-Execution"
 
-                    if ($currentOsDiskConfig.osType -ne "Linux") {
+                            $messageTxt = "Creating container gen1log in storage account $outputStorageAccountName"
+                            Write-Output $messageTxt
+                            Write-LogEntry -logMessage $messageTxt -logSeverity 3 -logComponent "MBR-GPT-Execution"
+                            $ctx = New-AzStorageContext -StorageAccountName $outputStorageAccountName -UseConnectedAccount -erroraction 'stop'
+                            New-AzStoragecontainer -Name "gen1log" -Context $ctx -ErrorAction 'SilentlyContinue' | Out-Null
+
+                            $messageTxt = "Generating SAS URL for output file in storage account $outputStorageAccountName"
+                            Write-Output $messageTxt
+                            Write-LogEntry -logMessage $messageTxt -logSeverity 3 -logComponent "MBR-GPT-Execution"
+                            $sasToken = New-AzStorageContainerSASToken -Context $ctx -Name "gen1log" -Permission rawl -StartTime $((Get-Date).AddMinutes(-5)) -ExpiryTime $((Get-Date).AddHours(1)) -ErrorAction 'Stop'
+                            $outputBlobSasUri = "https://$outputStorageAccountName.blob.core.windows.net/gen1log/$vmName-mbr2gpt-convert-output.log?" + $sasToken
+                            $errorBlobSasUri = "https://$outputStorageAccountName.blob.core.windows.net/gen1log/$vmName-mbr2gpt-convert-error.log?" + $sasToken
+
+                            $messageTxt = "Executing MBR to GPT conversion for $vmName"
+                            Write-Output $messageTxt
+                            Write-LogEntry -logMessage $messageTxt -logSeverity 3 -logComponent "MBR-GPT-Execution"
+                            $paramInvokeAzVMRunCommand = @{
+                                ResourceGroupName = $vmResourceGroupName
+                                VMName            = $vmName
+                                Location          = $CurrentVMConfig.location
+                                RunCommandName    = [system.string]::Concat($vmName, "-MBR2GPT-Convert")
+                                SourceScriptUri   = "https://raw.githubusercontent.com/AjKundnani/Gen1-TrustedLaunch/main/artifacts/Convert-MBRToGPT.ps1"
+                                OutputBlobUri     = $outputBlobSasUri
+                                ErrorBlobUri      = $errorBlobSasUri
+                                ErrorAction       = 'Stop'
+                            }
+                            Set-AzVMRunCommand @paramInvokeAzVMRunCommand | Out-Null
+
+                            $outputLog = (Get-AzStorageBlobContent -Blob "$vmName-mbr2gpt-convert-output.log" -Container "gen1log" -Context $ctx).ICloudBlob.DownloadText()
+                            $errorLog = (Get-AzStorageBlobContent -Blob "$vmName-mbr2gpt-convert-error.log" -Container "gen1log" -Context $ctx).ICloudBlob.DownloadText()
+
+                            if ($errorLog.Length -gt 0 -or $outputLog.Length -eq 0) {
+                                $messagetxt = "MBR to GPT support conversion for Windows $vmname failed. Terminating script execution."
+                                Write-Error $messagetxt
+                                Write-LogEntry -logMessage $messageTxt -logSeverity 1 -logComponent "MBR-GPT-Execution"
+                                Set-ErrorLevel -1    
+                            }
+                            else {
+                                $messagetxt = "MBR to GPT support conversion for Windows $vmname completed successfully."
+                                Write-Output $messagetxt
+                                Write-LogEntry -logMessage $messageTxt -logSeverity 3 -logComponent "MBR-GPT-Execution"
+                            }
+                        } else {
+                            $commandId = "RunPowerShellScript"
+                            $scriptString = "MBR2GPT /convert /allowFullOS"
+                        }
+                        $paramInvokeAzVMRunCommand = @{
+                            ResourceGroupName = $vmResourceGroupName
+                            VMName            = $vmName
+                            CommandId         = $commandId
+                            ScriptString      = $scriptString
+                            ErrorAction       = 'Stop'
+                        }
+                        $mbrtogpt = Invoke-AzVMRunCommand @paramInvokeAzVMRunCommand
+                        # Write-Output $mbrtogpt
                         if ($mbrtogpt.Value[-1].Message -or !($mbrtogpt.Value[0].Message)) {
                             $messagetxt = "MBR to GPT conversion for Windows $vmname failed. Terminating script execution."
                             Write-Error $messagetxt
