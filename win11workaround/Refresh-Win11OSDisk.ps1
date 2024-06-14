@@ -553,7 +553,7 @@ if ($ERRORLEVEL -eq 0) {
             $gen2OsDisk = New-AzDisk @paramNewAzDisk
             $gen2OsDisk = Get-AzDisk -ResourceGroupName $vmResourceGroupName -DiskName $gen2OsDisk.Name -ErrorAction 'SilentlyContinue'
     
-            while ($gen2OsDisk.DiskState -ne "ReadyToUpload") {
+            while ($gen2OsDisk.DiskState -notlike "*Upload") {
                 $messageTxt = "Awaiting Disk State update. DiskState: $($gen2OsDisk.DiskState), ProvisioningState: $($gen2OsDisk.ProvisioningState)"
                 Write-Output $messageTxt
                 Write-LogEntry -logMessage $messageTxt -logSeverity 3 -logComponent "New-AzDisk"
