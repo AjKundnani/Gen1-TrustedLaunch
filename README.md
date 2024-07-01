@@ -33,7 +33,7 @@ VM is in allocated / Running state.    |    Required to read current state and c
 Operating System    |    Operating system should be [Trusted launch supported.](https://aka.ms/TrustedLaunch) except <ul><li>Windows Server 2016</li></ul>**NOTE**:<ul><li>For Linux VMs, execute MBR to GPT locally on VM. Refer to steps [Linux MBR to GPT conversion](#linux-os-mbr-to-gpt-conversion)<li> Windows Server 2016 does not natively supports `MBR to GPT` conversion and requires offline upgrade process. For more details refer to [Perform offline upgrade using `Convert-Gen1ToTLVM.ps1`](./offlineUpgrade/offlineUpgradeProcess.md)</li></ul>
 Azure IaaS VM Agent    |    [Azure IaaS Windows VM Agent](https://learn.microsoft.com/azure/virtual-machines/extensions/agent-windows) OR [Azure IaaS Linux VM Agent](https://learn.microsoft.com/azure/virtual-machines/extensions/agent-linux) should be installed and healthy.
 Disk Encryption    |    If enabled, Disable any OS disk encryption including Bitlocker, CRYPT, [Server side encryption with customer managed keys](https://learn.microsoft.com/azure/virtual-machines/disk-encryption) prior to upgrade. All disk encryptions should be re-enabled post successful upgrade.
-VM Backup    |    Azure Backup if enabled for VM(s) should be configured with Enhanced Backup Policy. Trusted launch security type cannot be enabled for Generation 2 VM(s) configured with Standard Policy backup protection.<br/>Existing Azure VM backup can be migrated from Standard to Enhanced policy using private preview migration feature. Submit on-boarding request to preview using link https://aka.ms/formBackupPolicyMigration.
+VM Backup    |    Azure Backup if enabled for VM(s) should be configured with Enhanced Backup Policy. Trusted launch security type cannot be enabled for Generation 2 VM(s) configured with Standard Policy backup protection.<br/>Existing Azure VM backup can be migrated from Standard to Enhanced policy using [Migrate Azure VM backups from standard to enhanced policy (preview)](https://learn.microsoft.com/azure/backup/backup-azure-vm-migrate-enhanced-policy)
 VM Disaster Recovery    |    Trusted launch VMs currently do not support Azure Site Recovery (ASR). If enabled, ASR should be disabled prior to upgrade.
 
 ## Best Practices
@@ -88,7 +88,6 @@ After successful conversion of Gen1 to Trusted Launch VM, user needs to perform 
 
 1. Validate health of Virtual Machine OS and workload hosted on converted Gen2 TLVM.
 2. Re-enable all disk encryptions on Trusted launch virtual machine post successful upgrade.
-3. Re-enable backup with Enhanced Policy post successful upgrade to Trusted launch virtual machine.
 
 ## Linux OS MBR to GPT conversion
 
