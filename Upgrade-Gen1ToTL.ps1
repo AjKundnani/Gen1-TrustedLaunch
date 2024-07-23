@@ -75,6 +75,9 @@ param (
     [string][ValidateNotNullOrEmpty()]$subscriptionId,
     [Parameter(Mandatory = $true, HelpMessage = "Azure Tenant domain")]
     [string][ValidateNotNullOrEmpty()]$tenantDomain,
+    [Parameter(Mandatory=$false, HelpMessage = "The cloud environment where the VM exists.")]
+    [ValidateSet("AzureCloud","AzureChinaCloud","AzureUSGovernment")]
+    [string]$environment='AzureCloud',
     [Parameter(Mandatory = $true, HelpMessage = "Location of csv containing Gen1 VM(s) details - vmName, vmResourceGroupName, EnableSecureBoot.")]
     [string][ValidateNotNullOrEmpty()]$csvLocation,
     [Parameter(Mandatory = $false, HelpMessage = "Number of machines which should be processed in parallel. Default set to 5.")]
@@ -92,7 +95,7 @@ try {
     New-Variable -Name 'ERRORLEVEL' -Value 0 -Scope Script -Force
     
     $PSVersion = $PSVersionTable.PSVersion
-    if ($PSVersion.Major -gt 7 -or ($PSVersion.Major -eq 7 -and $PSVersion.Minor -gt 2)) {
+    if ($PSVersion.Major -gt 7 -or ($PSVersion.Major -eq 7 -and $PSVersion.Minor -ge 2)) {
         $messagetxt = "PowerShell version is greater than 7.2"
         Write-Output $messageTxt
     } else {
