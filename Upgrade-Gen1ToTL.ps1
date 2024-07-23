@@ -90,6 +90,7 @@ param (
 #region - Validate Pre-Requisites
 try {
     New-Variable -Name 'ERRORLEVEL' -Value 0 -Scope Script -Force
+    
     $PSVersion = $PSVersionTable.PSVersion
     if ($PSVersion.Major -gt 7 -or ($PSVersion.Major -eq 7 -and $PSVersion.Minor -gt 2)) {
         $messagetxt = "PowerShell version is greater than 7.2"
@@ -212,6 +213,24 @@ If ($ERRORLEVEL -eq 0) {
                 ErrorAction = 'Stop'
             }
             Save-AzContext @paramSaveAzContext | Out-Null
+        }
+        #endregion
+
+        #region - Check for feature registration
+        If ((Get-AzProviderFeature -ProviderNamespace "Microsoft.Compute" -FeatureName "Gen1ToTLMigrationPreview").RegistrationState -ne "Registered") {
+            $messageTxt = "Feature Gen1ToTLMigrationPreview is not registered. Registering now."
+            Write-Warning $messagetxt
+            Register-AzProviderFeature -ProviderNamespace "Microsoft.Compute" -FeatureName "Gen1ToTLMigrationPreview" -ErrorAction 'Stop'
+
+            do {
+                $registrationState = (Get-AzProviderFeature -ProviderNamespace "Microsoft.Compute" -FeatureName "Gen1ToTLMigrationPreview").RegistrationState
+                $messagetxt = "Registration state: $registrationState"
+                Write-Output $messagetxt
+                Start-Sleep -Seconds 10
+            } while ($registrationState -ne "Registered")
+        } else {
+            $messagetxt = "Feature Gen1ToTLMigrationPreview is already registered."
+            Write-Output $messagetxt
         }
         #endregion
     }
