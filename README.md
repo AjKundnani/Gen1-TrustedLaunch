@@ -144,7 +144,8 @@ This error occurs for one of following reason:
 
 - There is no free space available on the system volume
 - System volume is corrupted. You can validate by trying to Shrink Volume by few MBs under Disk Management console. Use command `chkdsk C:/v/f` to repair system volume.
-- `Virtual Disk Service` is not running or unable to communicate successfully.
+- `Virtual Disk` is not running or unable to communicate successfully. Service startup type should be set to `Manual`.
+- `Optimize Drives` is not running or unable to communicate successfully. Service startup type should be set to `Manual`.
 - System volume disk is already configured with 4 MBR partitions (maximum supported by MBR disk layout). You need to delete one of the partition to make room for EFI system partition.
     1. Run `ReAgentc /info` to identify partition actively used by Recovery. Example: `Windows RE location:       \\?\GLOBALROOT\device\harddisk0\partition4\Recovery\WindowsRE`
     2. Run PowerShell cmdlet `Get-Partition -DiskNumber 0` to identify current partitions configured.
