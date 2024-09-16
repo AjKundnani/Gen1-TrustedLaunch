@@ -107,7 +107,7 @@ try {
     if ($useCloudshell) {
         $workingDirectory = [system.string]::concat((Get-Location).Path, "/Gen1-TrustedLaunch-Upgrade")
     } else {
-        if ((Test-Path $env:UserProfile)) {
+        if ((Test-Path $env:UserProfile -ErrorAction SilentlyContinue) -eq $true) {
             $workingDirectory = "$env:UserProfile\Gen1-TrustedLaunch-Upgrade"
         } else {
             $messageTxt = "User profile directory not found. Defaulting to script execution location."
