@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
 Upgrades Azure VM from Gen1 to Trusted Launch Configuration with OS State preserved.
-Script Version - 2.1.0
+Script Version - 2.1.1
 
 .DESCRIPTION
     PREREQUISITES:
@@ -106,7 +106,15 @@ try {
 
     if ($useCloudshell) {
         $workingDirectory = [system.string]::concat((Get-Location).Path, "/Gen1-TrustedLaunch-Upgrade")
-    } else {$workingDirectory = "$env:UserProfile\Gen1-TrustedLaunch-Upgrade"}
+    } else {
+        if ((Test-Path $env:UserProfile -ErrorAction SilentlyContinue) -eq $true) {
+            $workingDirectory = "$env:UserProfile\Gen1-TrustedLaunch-Upgrade"
+        } else {
+            $messageTxt = "User profile directory not found. Defaulting to script execution location."
+            Write-Output $messagetxt
+            $workingDirectory = [system.string]::concat((Get-Location).Path, "\Gen1-TrustedLaunch-Upgrade")
+        }
+    }
     if ((Test-Path $workingDirectory) -eq $true) {
         $messageTxt = "Working Directory Already Setup $workingDirectory"
         Write-Output $messageTxt
@@ -328,7 +336,7 @@ if ($ERRORLEVEL -eq 0) {
                 $messageTxt = "Error Exception Occurred `nWrite-InitLog()  `n$($psitem.Exception.Message)"
                 Write-Output $messageTxt
                 Set-ErrorLevel -1
-                exit $ERRORLEVEL
+                return $ERRORLEVEL
             }
         }
         function Write-LogEntry {
@@ -362,7 +370,7 @@ if ($ERRORLEVEL -eq 0) {
                 $messageTxt = "Error Exception Occurred `nWrite-LogEntry()  `n$($psitem.Exception.Message)"
                 Write-Output $messageTxt
                 Set-ErrorLevel -1
-                exit $ERRORLEVEL
+                return $ERRORLEVEL
             }
         }
         #endregion
@@ -393,7 +401,7 @@ if ($ERRORLEVEL -eq 0) {
             } else {$workingDirectory = "$env:UserProfile\Gen1-TrustedLaunch-Upgrade"}
 
             Write-InitLog -logDirectory $workingDirectory -vmName $vmName
-            $messageTxt = "Script Version: 2.1.0"
+            $messageTxt = "Script Version: 2.1.1"
             Write-Output $messageTxt
             Write-LogEntry -logMessage $messageTxt -logSeverity 3 -logComponent "Setup-PreRequisites"
 
@@ -420,7 +428,7 @@ if ($ERRORLEVEL -eq 0) {
             Write-Output $messageTxt
             Write-LogEntry -logMessage $messageTxt -logSeverity 1 -logComponent "Setup-PreRequisites"
             Set-ErrorLevel -1
-            exit $ERRORLEVEL
+            return $ERRORLEVEL
         }
         #endregion
 
@@ -485,7 +493,7 @@ if ($ERRORLEVEL -eq 0) {
                 Write-Output $messageTxt
                 Write-LogEntry -logMessage $messageTxt -logSeverity 1 -logComponent "Connect-AzSubscription"
                 Set-ErrorLevel -1
-                exit $ERRORLEVEL
+                return $ERRORLEVEL
             }    
         }
         #endregion
@@ -579,7 +587,7 @@ if ($ERRORLEVEL -eq 0) {
                         Write-Error $messageTxt
                         Write-LogEntry -logMessage $messageTxt -logSeverity 1 -logComponent "Get-AzVM"
                         Set-ErrorLevel -1
-                        exit $ERRORLEVEL
+                        return $ERRORLEVEL
                     }
                 }
                 #endregion
@@ -589,7 +597,7 @@ if ($ERRORLEVEL -eq 0) {
                 Write-Output $messageTxt
                 Write-LogEntry -logMessage $messageTxt -logSeverity 1 -logComponent "Get-AzVM"
                 Set-ErrorLevel -1
-                exit $ERRORLEVEL
+                return $ERRORLEVEL
             }
         }
         #endregion
@@ -692,7 +700,7 @@ if ($ERRORLEVEL -eq 0) {
                 Write-Output $messageTxt
                 Write-LogEntry -logMessage $messageTxt -logSeverity 1 -logComponent "MBR-GPT-Validation"
                 Set-ErrorLevel -1
-                exit $ERRORLEVEL
+                return $ERRORLEVEL
             }
         }
         #endregion
@@ -804,7 +812,7 @@ if ($ERRORLEVEL -eq 0) {
                 Write-Output $messageTxt
                 Write-LogEntry -logMessage $messageTxt -logSeverity 1 -logComponent "MBR-GPT-Execution"
                 Set-ErrorLevel -1
-                exit $ERRORLEVEL
+                return $ERRORLEVEL
             }
         }
         #endregion
@@ -860,7 +868,7 @@ if ($ERRORLEVEL -eq 0) {
                 Write-Output $messageTxt
                 Write-LogEntry -logMessage $messageTxt -logSeverity 1 -logComponent "Upgrade-AzVM"
                 Set-ErrorLevel -1
-                exit $ERRORLEVEL
+                return $ERRORLEVEL
             }
         }
         #endregion
