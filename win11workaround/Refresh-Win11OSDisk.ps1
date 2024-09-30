@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
 Export and import Windows 11 OS disk to refresh Windows 11 OS Disk boot variables.
-Script Version: 2.0.1
+Script Version: 2.0.2
 
 .DESCRIPTION
 The Windows 11 boot issue post Gen1 to Trusted launch upgrade could be due to boot variable error. Run this script post Windows 11 in-place upgrade to refresh the boot variables for VM.
@@ -100,7 +100,15 @@ try {
 
     if ($useCloudshell) {
         $workingDirectory = [system.string]::concat((Get-Location).Path, "/Gen1-TrustedLaunch-Upgrade")
-    } else {$workingDirectory = "$env:UserProfile\Gen1-TrustedLaunch-Upgrade"}
+    } else {
+        if ((Test-Path $env:UserProfile -ErrorAction SilentlyContinue) -eq $true) {
+            $workingDirectory = "$env:UserProfile\Gen1-TrustedLaunch-Upgrade"
+        } else {
+            $messageTxt = "User profile directory not found. Defaulting to script execution location."
+            Write-Output $messagetxt
+            $workingDirectory = [system.string]::concat((Get-Location).Path, "\Gen1-TrustedLaunch-Upgrade")
+        }
+    }
 
     if ((Test-Path $workingDirectory) -eq $true) {
         $messageTxt = "Working Directory Already Setup $workingDirectory"
@@ -240,7 +248,13 @@ if ($ERRORLEVEL -eq 0) {
             if ($useCloudshell -eq $true) {
                 $workingDirectory = [system.string]::concat((Get-Location).Path, "/Gen1-TrustedLaunch-Upgrade")
             } else {
-                $workingDirectory = "$env:UserProfile\Gen1-TrustedLaunch-Upgrade"
+                if ((Test-Path $env:UserProfile -ErrorAction SilentlyContinue) -eq $true) {
+                    $workingDirectory = "$env:UserProfile\Gen1-TrustedLaunch-Upgrade"
+                } else {
+                    $messageTxt = "User profile directory not found. Defaulting to script execution location."
+                    Write-Output $messagetxt
+                    $workingDirectory = [system.string]::concat((Get-Location).Path, "\Gen1-TrustedLaunch-Upgrade")
+                }
                 $azCopyDir = (Get-ChildItem -Path $workingDirectory\azCopy\ | Where-Object { $psitem.Name -like "azcopy_windows*" }).Name
                 $azCopyDir = "$workingDirectory\azCopy\$azCopyDir\"
                 $env:AZCOPY_LOG_LOCATION = $azCopyDir
@@ -349,7 +363,7 @@ if ($ERRORLEVEL -eq 0) {
             #endregion
 
             Write-InitLog -logDirectory $workingDirectory -vmName $vmName
-            $messageTxt = "Script Version: 2.0.1"
+            $messageTxt = "Script Version: 2.0.2"
             Write-Output $messageTxt
             Write-LogEntry -logMessage $messageTxt -logSeverity 3 -logComponent "Setup-PreRequisites"
             Set-Errorlevel 0 | Out-Null
