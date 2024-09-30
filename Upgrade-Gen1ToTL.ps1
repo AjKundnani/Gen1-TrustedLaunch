@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
 Upgrades Azure VM from Gen1 to Trusted Launch Configuration with OS State preserved.
-Script Version - 2.1.1
+Script Version - 2.1.2
 
 .DESCRIPTION
     PREREQUISITES:
@@ -398,10 +398,18 @@ if ($ERRORLEVEL -eq 0) {
 
             if ($useCloudshell) {
                 $workingDirectory = [system.string]::concat((Get-Location).Path, "/Gen1-TrustedLaunch-Upgrade")
-            } else {$workingDirectory = "$env:UserProfile\Gen1-TrustedLaunch-Upgrade"}
+            } else {
+                if ((Test-Path $env:UserProfile -ErrorAction SilentlyContinue) -eq $true) {
+                    $workingDirectory = "$env:UserProfile\Gen1-TrustedLaunch-Upgrade"
+                } else {
+                    $messageTxt = "User profile directory not found. Defaulting to script execution location."
+                    Write-Output $messagetxt
+                    $workingDirectory = [system.string]::concat((Get-Location).Path, "\Gen1-TrustedLaunch-Upgrade")
+                }
+            }
 
             Write-InitLog -logDirectory $workingDirectory -vmName $vmName
-            $messageTxt = "Script Version: 2.1.1"
+            $messageTxt = "Script Version: 2.1.2"
             Write-Output $messageTxt
             Write-LogEntry -logMessage $messageTxt -logSeverity 3 -logComponent "Setup-PreRequisites"
 
