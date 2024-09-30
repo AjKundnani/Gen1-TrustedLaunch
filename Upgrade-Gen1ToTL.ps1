@@ -353,9 +353,6 @@ if ($ERRORLEVEL -eq 0) {
                 [String]$logComponent
             )
             try {
-                if (([system.math]::Round((Get-Item $logFile -ErrorAction SilentlyContinue).Length / 1MB, 2)) -gt 10) {
-                    Write-InitLog
-                }
                 $time = Get-Date -Format 'HH:mm:ss.ffffff'
                 $date = Get-Date -Format 'MM-dd-yyyy'
                 $message = "<![LOG[$logMessage" + "]LOG]!><time=`"$time`" date=`"$date`" component=`"$logComponent`" context=`"`" type=`"$logSeverity`" thread=`"`" file=`"`">"
