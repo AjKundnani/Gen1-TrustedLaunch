@@ -131,6 +131,14 @@ Windows 10 Gen1 VM is successfully upgraded to Trusted launch followed by succes
 
 ![Windows 11 boot error](./artifacts/01.%20errorWindows11Boot.jpg)
 
+**Resolved**: This issue has been fixed with [24H2 build version 26100.2314](https://learn.microsoft.com/windows/release-health/windows11-release-information#windows-11-current-versions-by-servicing-option). You can get ISO with this version from:
+
+1. WSUS / Intune Windows 11 feature update for 24H2. OR,
+2. Visual studio downloads OR,
+3. ISO generated using [Create Windows 11 Installation media](https://www.microsoft.com/software-download/windows11).
+
+Updated ISO will be available in volume license portal by end of November 2024.
+
 **Workaround** for the issue currently is to refresh the Windows 11 OS disk. For more details, [Refresh Windows 11 OS disk](./win11workaround/refreshWindows11OSDisk.md)
 Team is actively troubleshooting this issue.
 
