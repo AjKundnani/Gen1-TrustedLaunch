@@ -108,7 +108,7 @@ Id    |    Step    |    Description
 9    |    **Non-Azure** Build vfat filesystem for ESP.<br/>`sudo mkfs -t vfat -v /dev/disk/by-partlabel/EFI-system`    |    ![Vfat ESP](./artifacts/05-vfat-ESP.png)
 10    |    **Non-Azure** If does not exists already; create ESP Mountpoint<br/>`sudo mkdir /boot/efi`    |    
 11    |    **Non-Azure** Copy existing files in /boot/efi to temporary /mnt/folder.<ol><li>`sudo mount -t vfat /dev/disk/by-partlabel/EFI-system /mnt`<li>`sudo mv  /boot/efi/* /mnt`<li>`sudo umount /mnt`</li></ol><br/>*Note*: You can skip this step if there're any error related to file does not exists.    |    
-12    |    **Non-Azure**<ol><li>Open `/etc/fstab` using command `sudo vi /etc/fstab`<li>Add the ESP mountpoint to /etc/fstab. (replace spaces with tab key) `/dev/disk/by-partlabel/EFI-system /boot/efi vfat defaults 0 2`<li>Safe `/etc/fstab` using command in vi editor `wq`.    |    ![ESP Mount](./artifacts/06-ESP-Mount.png)
+12    |    **Non-Azure**<ol><li>Open `/etc/fstab` using command `sudo vi /etc/fstab`<li>Add the ESP mountpoint to /etc/fstab. (replace spaces with tab key)<br/>`/dev/disk/by-partlabel/EFI-system /boot/efi vfat defaults 0 2`<li>Safe `/etc/fstab` using command in vi editor `wq`.    |    ![ESP Mount](./artifacts/06-ESP-Mount.png)
 13    |    **Non-Azure** Mount ESP<br/>`sudo mount /boot/efi`    |    
 14    |    **Non-Azure** Install the GRUB EFI bootloader.<br/>**Ubuntu/Debian:**<br/>`sudo grub-install --target=x86_64-efi /dev/sda`<br/>**RHEL:**<br/>`sudo grub2-install --target=x86_64-efi /dev/sda`    |    ![grub2 efi install](./artifacts/07a-grub2-efi-install.png)<br/>![grub 2 efi install contd](./artifacts/07b-grub2-efi-install.png)
 
