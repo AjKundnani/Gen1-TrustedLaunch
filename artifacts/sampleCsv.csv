@@ -1,4 +1,0 @@
-﻿vmName,vmResourceGroupName,EnableSecureBoot,refreshOsDiskName
-win10-prl-vm-1,win11-prl-rg,TRUE,win10-prl-vm-1-os-disk
-win10-prl-vm-2,win11-prl-rg,FALSE,win10-prl-vm-2-os-disk
-win10-prl-vm-3,win11-prl-rg,TRUE,win10-prl-vm-3-os-disk
