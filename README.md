@@ -4,3 +4,5 @@
 
 - [Gen1-Trusted launch](https://github.com/Azure/Gen1-Trustedlaunch)
 - **Raw URL**: https://github.com/Azure/Gen1-Trustedlaunch
+
+**This repository will be removed on 13th December 2024.**
